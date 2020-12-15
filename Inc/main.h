@@ -266,7 +266,7 @@ typedef struct  {
 	uint8_t		cw_reverse;				// CW key dot/dash reverse
 	uint8_t		cw_keyreverse;		// CW output reverse
 
-	float	ptt_hang_time_wordspace_units;
+	uint8_t	ptt_hang_time_wordspace_units;
 	uint8_t wpm;
 	uint8_t wpm_farnsworth;
 	uint8_t paddle_mode;
@@ -308,13 +308,13 @@ typedef struct  {
 void StoreSetting(void);
 void OnUsbDataRx(uint8_t* dataIn, uint32_t length, uint16_t index);
 void USB_print(char *msg);
-void winkey_port_write(uint8_t byte_to_send, uint8_t override_filter);
+void WinkeyPortWrite(uint8_t byte_to_send, uint8_t override_filter);
 
-void set_cw(char on);				/* Set CW keyer output*/
-void set_ch(uint8_t n, uint8_t on);
-void set_txled(char on);
-void set_autoled(char on);
-void save_default_config(void);
+void SetCw(char on);				/* Set CW keyer output*/
+void SetCh(uint8_t n, uint8_t on);
+void SetTxLed(char on);
+void SetAutoled(char on);
+void SaveDefaultConfig(void);
 void DisplaySettings(void);
 void Error_Handler(void);
 

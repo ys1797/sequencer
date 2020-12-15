@@ -20,6 +20,7 @@
 #include "usb_device.h"
 #include "usbd_cdc_if.h"
 
+
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc;
 DMA_HandleTypeDef hdma_adc;
@@ -199,7 +200,7 @@ const static morse_t morse_keys[] =
 
 
 /* Private function prototypes -----------------------------------------------*/
-void service_winkey(uint8_t action, uint8_t incoming_serial_byte);
+void ServiceWinkey(uint8_t action, uint8_t incoming_serial_byte);
 void SystemClock_Config(void);
 
 static void MX_GPIO_Init(void);
@@ -207,11 +208,11 @@ static void MX_DMA_Init(void);
 static void MX_ADC_Init(void);
 static void MX_TIM14_Init(void);
 	
-void check_potentiometer(void);
-uint16_t pot_value_wpm(void);
-void speed_set(uint16_t wpm_set);
-void ptt_key(void);
-void check_ptt_tail(void);
+void CheckPotentiometer(void);
+uint16_t PotValueWPM(void);
+void SpeedSet(uint16_t wpm_set);
+void PttKey(void);
+void CheckPttTail(void);
 
 void Delay(uint32_t cycles)
 {
@@ -375,7 +376,7 @@ void OnUsbDataRx(uint8_t* dataIn, uint32_t length, uint16_t index)
 }
 
 
-void winkey_port_write(uint8_t byte_to_send, uint8_t override_filter)
+void WinkeyPortWrite(uint8_t byte_to_send, uint8_t override_filter)
 {
 	uint8_t tx_res, cnt = 0, msg[1];
 	msg[0] = byte_to_send;
@@ -401,7 +402,7 @@ void winkey_port_write(uint8_t byte_to_send, uint8_t override_filter)
 #endif //DEBUG_WINKEY
 }
 
-void clear_send_buffer()
+void ClearSendBuffer()
 {
 USB_print("clear_send_buffer\n\r");
 
@@ -411,11 +412,11 @@ USB_print("clear_send_buffer\n\r");
   send_buffer_bytes = 0;
 }
 
-void remove_from_send_buffer()
+void RemoveFromSendBuffer()
 {
   if ((send_buffer_bytes < 10) && winkey_xoff && flags.winkey_host_open) {
     winkey_xoff=0;
-    winkey_port_write(0xc0|winkey_sending|winkey_xoff,0); //send status /XOFF
+    WinkeyPortWrite(0xc0|winkey_sending|winkey_xoff,0); //send status /XOFF
   }
   
   if (send_buffer_bytes) {
@@ -425,12 +426,12 @@ void remove_from_send_buffer()
     for (int x = 0;x < send_buffer_bytes;x++) {
       send_buffer_array[x] = send_buffer_array[x+1];
     }
-    winkey_port_write(0xc0|winkey_sending|winkey_xoff,0);
+    WinkeyPortWrite(0xc0|winkey_sending|winkey_xoff,0);
 	}
 }
 
 
-void add_to_send_buffer(uint8_t incoming_serial_byte)
+void AddToSendBuffer(uint8_t incoming_serial_byte)
 {
 
   if (send_buffer_bytes < SEND_BUFFER_SIZE) {
@@ -440,7 +441,7 @@ void add_to_send_buffer(uint8_t incoming_serial_byte)
   
       if ((send_buffer_bytes>20) && flags.winkey_host_open) {
         winkey_xoff=1;
-        winkey_port_write(0xc0|winkey_sending|winkey_xoff,0); //send XOFF status         
+        WinkeyPortWrite(0xc0|winkey_sending|winkey_xoff,0); //send XOFF status         
       }
     } else {  // we got a backspace
       if (send_buffer_bytes){
@@ -450,7 +451,7 @@ void add_to_send_buffer(uint8_t incoming_serial_byte)
   }
 }
 
-void winkey_farnsworth_command(uint8_t incoming_serial_byte)
+void WinkeyFarnsworthCommand(uint8_t incoming_serial_byte)
 {
 
 	if ((incoming_serial_byte > 9) && (incoming_serial_byte < 100)) {
@@ -459,7 +460,7 @@ void winkey_farnsworth_command(uint8_t incoming_serial_byte)
 }
 
 
-void winkey_unbuffered_speed_command(uint8_t incoming_serial_byte) {
+void WinkeyUnbufferedSpeedCommand(uint8_t incoming_serial_byte) {
 
   if (incoming_serial_byte == 0) {
       setting.pot_activated = 1;
@@ -471,15 +472,15 @@ void winkey_unbuffered_speed_command(uint8_t incoming_serial_byte) {
   }
 }
 
-void winkey_keying_compensation_command(uint8_t incoming_serial_byte) {
+void WinkeyKeyingCompensationCommand(uint8_t incoming_serial_byte) {
 	keying_compensation = incoming_serial_byte;
 }
 
-void winkey_first_extension_command(uint8_t incoming_serial_byte) {
+void WinkeyFirstExtensionCommand(uint8_t incoming_serial_byte) {
   first_extension_time = incoming_serial_byte;
 }
 
-void winkey_dah_to_dit_ratio_command(uint8_t incoming_serial_byte) {
+void WinkeyDashToDotRatioCommand(uint8_t incoming_serial_byte) {
 
   if ((incoming_serial_byte > 32) && (incoming_serial_byte < 67)) {
     setting.dah_to_dit_ratio = (300*((uint16_t)(incoming_serial_byte)/50));
@@ -487,13 +488,13 @@ void winkey_dah_to_dit_ratio_command(uint8_t incoming_serial_byte) {
   }
 }
 
-void winkey_weighting_command(uint8_t incoming_serial_byte) {
+void WinkeyWeightingCommand(uint8_t incoming_serial_byte) {
   if ((incoming_serial_byte > 9) && (incoming_serial_byte < 91)) {
     setting.weighting = incoming_serial_byte;
   }
 }
 
-void winkey_ptt_times_parm1_command(uint8_t incoming_serial_byte) {
+void WinkeyPttTimesParm1Command(uint8_t incoming_serial_byte) {
 #if !defined(DEBUG_WINKEY_DISABLE_LEAD_IN_TIME_SETTING)
     setting.ptt_lead_time = (incoming_serial_byte*10);
 #else
@@ -501,20 +502,20 @@ void winkey_ptt_times_parm1_command(uint8_t incoming_serial_byte) {
 #endif
 }
 
-void winkey_ptt_times_parm2_command(uint8_t incoming_serial_byte) {
+void WinkeyPttTimesParm2Command(uint8_t incoming_serial_byte) {
   setting.ptt_tail_time = (3*(int)(1200/setting.wpm)) + (incoming_serial_byte*10);
   winkey_session_ptt_tail = incoming_serial_byte;
 }
 
-void winkey_set_pot_parm1_command(uint8_t incoming_serial_byte) {
+void WinkeySetPotParm1Command(uint8_t incoming_serial_byte) {
   pot_wpm_low_value = incoming_serial_byte;
 }
 
-void winkey_set_pot_parm2_command(uint8_t incoming_serial_byte) {
+void WinkeySetPotParm2Command(uint8_t incoming_serial_byte) {
     pot_wpm_high_value = (pot_wpm_low_value + incoming_serial_byte);
 }
 
-void winkey_set_pot_parm3_command(uint8_t incoming_serial_byte) {
+void WinkeySetPotParm3Command(uint8_t incoming_serial_byte) {
 
 
 #ifdef OPTION_WINKEY_2_SUPPORT
@@ -531,7 +532,7 @@ void winkey_set_pot_parm3_command(uint8_t incoming_serial_byte) {
 	setting.pot_activated = 1;
 }
 
-void winkey_setmode_command(uint8_t incoming_serial_byte) {
+void WinkeySetmodeCommand(uint8_t incoming_serial_byte) {
   flags.config_dirty = 1;
 
   if (incoming_serial_byte & 4) {  //serial echo enable
@@ -578,10 +579,10 @@ void winkey_setmode_command(uint8_t incoming_serial_byte) {
   }
 }
 
-void winkey_sidetone_freq_command(uint8_t incoming_serial_byte) {
+void WinkeySidetoneFreqCommand(uint8_t incoming_serial_byte) {
 }
 
-void winkey_set_pinconfig_command(uint8_t incoming_serial_byte) {
+void WinkeySetPinconfigCommand(uint8_t incoming_serial_byte) {
   
   if (incoming_serial_byte & 1) {
     setting.ptt_buffer_hold_active = 1;
@@ -609,74 +610,74 @@ void winkey_set_pinconfig_command(uint8_t incoming_serial_byte) {
   }
 }
 
-void winkey_load_settings_command(uint8_t winkey_status, uint8_t incoming_serial_byte) {
+void WinkeyLoadSettingsCommand(uint8_t winkey_status, uint8_t incoming_serial_byte) {
 
   switch(winkey_status) {
      case WINKEY_LOAD_SETTINGS_PARM_1_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_1_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_setmode_command(incoming_serial_byte);
+       WinkeySetmodeCommand(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_2_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_2_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_unbuffered_speed_command(incoming_serial_byte);
+       WinkeyUnbufferedSpeedCommand(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_3_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_3_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_sidetone_freq_command(incoming_serial_byte);
+       WinkeySidetoneFreqCommand(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_4_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_4_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_weighting_command(incoming_serial_byte);
+       WinkeyWeightingCommand(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_5_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_5_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_ptt_times_parm1_command(incoming_serial_byte);
+       WinkeyPttTimesParm1Command(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_6_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_6_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_ptt_times_parm2_command(incoming_serial_byte);
+       WinkeyPttTimesParm2Command(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_7_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_7_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_set_pot_parm1_command(incoming_serial_byte);
+       WinkeySetPotParm1Command(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_8_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_8_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_set_pot_parm2_command(incoming_serial_byte);
+       WinkeySetPotParm2Command(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_9_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_9_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_first_extension_command(incoming_serial_byte);
+       WinkeyFirstExtensionCommand(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_10_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_10_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_keying_compensation_command(incoming_serial_byte);
+       WinkeyKeyingCompensationCommand(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_11_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_11_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_farnsworth_command(incoming_serial_byte);
+       WinkeyFarnsworthCommand(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_12_COMMAND:  // paddle switchpoint - don't need to support
 #ifdef DEBUG_WINKEY
@@ -687,25 +688,25 @@ void winkey_load_settings_command(uint8_t winkey_status, uint8_t incoming_serial
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_13_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_dah_to_dit_ratio_command(incoming_serial_byte);
+       WinkeyDashToDotRatioCommand(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_14_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_14_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_set_pinconfig_command(incoming_serial_byte);
+       WinkeySetPinconfigCommand(incoming_serial_byte);
        break;
      case WINKEY_LOAD_SETTINGS_PARM_15_COMMAND:
 #ifdef DEBUG_WINKEY
        USB_print("WINKEY_LOAD_SETTINGS_PARM_15_COMMAND\r\n");
 #endif //DEBUG_WINKEY       
-       winkey_set_pot_parm3_command(incoming_serial_byte);
+       WinkeySetPotParm3Command(incoming_serial_byte);
        break;
   }
 }
 
 
-void winkey_admin_get_values_command() {
+void WinkeyAdminGetValuesCommand() {
 
   uint8_t byte_to_send;
 
@@ -739,58 +740,56 @@ void winkey_admin_get_values_command() {
     byte_to_send = byte_to_send | 128;
   }
   #endif //FEATURE_DEAD_OP_WATCHDOG
-  winkey_port_write(byte_to_send,1);
+  WinkeyPortWrite(byte_to_send,1);
 
   // 2 - speed
   if (setting.wpm > 99) {
-    winkey_port_write(99,1);
+    WinkeyPortWrite(99,1);
   } else {
     byte_to_send = setting.wpm;
-    winkey_port_write(byte_to_send,1);
+    WinkeyPortWrite(byte_to_send,1);
   }
-
   // 3 - sidetone
-	winkey_port_write(5,1);
-
+	WinkeyPortWrite(5,1);
 
   // 4 - weight
-  winkey_port_write(setting.weighting,1);
+  WinkeyPortWrite(setting.weighting,1);
 
   // 5 - ptt lead
   if (setting.ptt_lead_time < 256){
-    winkey_port_write(setting.ptt_lead_time/10,1);
+    WinkeyPortWrite(setting.ptt_lead_time/10,1);
   } else {
-    winkey_port_write(255,1);
+    WinkeyPortWrite(255,1);
   }
 
   // 6 - ptt tail
   //if (configuration.ptt_tail_time[configuration.current_tx-1] < 256){
-    //winkey_port_write((configuration.ptt_tail_time[configuration.current_tx-1] - (3*int(1200/configuration.wpm)))/10,1);
-    winkey_port_write(winkey_session_ptt_tail,1);
+    //WinkeyPortWrite((configuration.ptt_tail_time[configuration.current_tx-1] - (3*int(1200/configuration.wpm)))/10,1);
+    WinkeyPortWrite(winkey_session_ptt_tail,1);
   // } else {
-  //   winkey_port_write(winkey_port_write(255,1);
+  //   WinkeyPortWrite(winkey_port_write(255,1);
   // }
 
   // 7 - pot min wpm
-  winkey_port_write(pot_wpm_low_value,1);
+  WinkeyPortWrite(pot_wpm_low_value,1);
 
   // 8 - pot wpm range
-  winkey_port_write(pot_wpm_high_value - pot_wpm_low_value,1);
+  WinkeyPortWrite(pot_wpm_high_value - pot_wpm_low_value,1);
 
   // 9 - 1st extension
-  winkey_port_write(first_extension_time,1);
+  WinkeyPortWrite(first_extension_time,1);
 
   // 10 - compensation
-  winkey_port_write(keying_compensation,1);
+  WinkeyPortWrite(keying_compensation,1);
 
 	// 11 - farnsworth wpm
- winkey_port_write(setting.wpm_farnsworth,1);
+ WinkeyPortWrite(setting.wpm_farnsworth,1);
 
   // 12 - paddle setpoint
-  winkey_port_write(50,1);  // default value
+  WinkeyPortWrite(50,1);  // default value
 
   // 13 - dah to dit ratio
-  winkey_port_write(50,1);  // TODO -backwards calculate
+  WinkeyPortWrite(50,1);  // TODO -backwards calculate
 
   // 14 - pin config
 #ifdef OPTION_WINKEY_2_SUPPORT
@@ -810,38 +809,38 @@ void winkey_admin_get_values_command() {
     if (ptt_hang_time_wordspace_units == 2.0) {byte_to_send = byte_to_send | 48;}
     winkey_port_write(byte_to_send,1);
 #else
-    winkey_port_write(5,1); // default value
+    WinkeyPortWrite(5,1); // default value
 #endif
 
   // 15 - pot range
   #ifdef OPTION_WINKEY_2_SUPPORT
-    winkey_port_write(zero,1);
+    WinkeyPortWrite(zero,1);
   #else
-    winkey_port_write(0xFF,1);
+    WinkeyPortWrite(0xFF,1);
   #endif
 
 }
 
-void winkey_eeprom_download() {
+void WinkeyEepromDownload() {
   
   uint8_t zero = 0;
   unsigned int x = 0;
   unsigned int bytes_sent = 0;
   
-  winkey_port_write(0xA5,1); // 01 magic byte
-  winkey_admin_get_values_command(); // 02-16
+  WinkeyPortWrite(0xA5,1); // 01 magic byte
+  WinkeyAdminGetValuesCommand(); // 02-16
   
-  winkey_port_write((uint8_t)(setting.wpm),1); // 17 cmdwpm
+  WinkeyPortWrite((uint8_t)(setting.wpm),1); // 17 cmdwpm
   bytes_sent = 17;
   
   //pad the rest with zeros    
   for (x = 0;x < (256-bytes_sent); x++) {
-    winkey_port_write(zero,1);
+    WinkeyPortWrite(zero,1);
   }  
 }
 
 
-void tx_key (int state)
+void TxKey(int state)
 {
 #ifdef DEBUG_WINKEY
 		char izp[64];
@@ -854,21 +853,21 @@ void tx_key (int state)
 	
 	if ((state) && (flags.key_state == 0)) {
       uint8_t previous_ptt_line_activated = flags.ptt_line_activated;
-      ptt_key();
+      PttKey();
       flags.key_state = 1;
 			if ((first_extension_time) && (previous_ptt_line_activated == 0)) Delay(1);
     } else {
       if ((state == 0) && (flags.key_state)) {
-        ptt_key();
+        PttKey();
         flags.key_state = 0;
       }
     }
-  check_ptt_tail();
+  CheckPttTail();
 }
 
 
 
-void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
+void ServiceWinkey(uint8_t action, uint8_t incoming_serial_byte) {
   static uint8_t winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
   static int winkey_parmcount = 0;
 
@@ -892,11 +891,11 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
         USB_print("WK: sending unsolicited status byte due to paddle interrupt\r\n");
 #endif //DEBUG_WINKEY       
         winkey_sending = 0;
-        clear_send_buffer();
+        ClearSendBuffer();
         flags.winkey_interrupted = 0;
         //winkey_port_write(0xc2|winkey_sending|winkey_xoff);  
-        winkey_port_write(0xc6,0);    //<- this alone makes N1MM logger get borked (0xC2 = paddle interrupt)
-        winkey_port_write(0xc0,0);    // so let's send a 0xC0 to keep N1MM logger happy 
+        WinkeyPortWrite(0xc6,0);    //<- this alone makes N1MM logger get borked (0xC2 = paddle interrupt)
+        WinkeyPortWrite(0xc0,0);    // so let's send a 0xC0 to keep N1MM logger happy 
         winkey_buffer_counter = 0;
         winkey_buffer_pointer = 0;  
       }
@@ -904,14 +903,14 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
       //if ((winkey_host_open) && (winkey_sending) && (send_buffer_bytes < 1) && ((millis() - winkey_last_activity) > winkey_c0_wait_time)) {
       if ((flags.winkey_host_open) && (winkey_sending) && (send_buffer_bytes < 1) && ((HAL_GetTick() - winkey_last_activity) > 1)) {
         #ifdef OPTION_WINKEY_SEND_WORDSPACE_AT_END_OF_BUFFER
-          send_char(' ',KEYER_NORMAL);
+          SendChar(' ',KEYER_NORMAL);
         #endif
         //add_to_send_buffer(' ');    // this causes a 0x20 to get echoed back to host - doesn't seem to effect N1MM program
 #ifdef DEBUG_WINKEY
         USB_print("Sending unsolicited status byte\r\n");
 #endif //DEBUG_WINKEY           
         winkey_sending = 0;
-        winkey_port_write(0xc0|winkey_sending|winkey_xoff,0);    // tell the host we've sent everything
+        WinkeyPortWrite(0xc0|winkey_sending|winkey_xoff,0);    // tell the host we've sent everything
         winkey_buffer_counter = 0;
         winkey_buffer_pointer = 0;
       }
@@ -927,14 +926,14 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
       winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       winkey_buffer_counter = 0;
       winkey_buffer_pointer = 0;
-      winkey_port_write(0xc0|winkey_sending|winkey_xoff,0);    //send a status byte back for giggles
+      WinkeyPortWrite(0xc0|winkey_sending|winkey_xoff,0);    //send a status byte back for giggles
     }  
 
 		if ((flags.winkey_host_open) && (winkey_paddle_echo_buffer) && (winkey_paddle_echo_activated) && (HAL_GetTick() > winkey_paddle_echo_buffer_decode_time)) {
 #ifdef DEBUG_WINKEY
       USB_print("WK: sending paddle echo char\r\n");
 #endif //DEBUG_WINKEY       
-      winkey_port_write((uint8_t)(convert_cw_number_to_ascii(winkey_paddle_echo_buffer)),0);
+      WinkeyPortWrite((uint8_t)(convert_cw_number_to_ascii(winkey_paddle_echo_buffer)),0);
       winkey_paddle_echo_buffer = 0;
       winkey_paddle_echo_buffer_decode_time = HAL_GetTick() + ((uint32_t)(600/setting.wpm)*length_letterspace);
       winkey_paddle_echo_space_sent = 0;
@@ -944,7 +943,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 #ifdef DEBUG_WINKEY
       USB_print("WK: sending paddle echo space");
 #endif //DEBUG_WINKEY        
-      winkey_port_write(' ',0);
+      WinkeyPortWrite(' ',0);
       winkey_paddle_echo_space_sent = 1;
     }
 	}  // if (action == WINKEY_HOUSEKEEPING)
@@ -989,7 +988,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
           }
           winkey_buffer_pointer++;
         } else {
-          add_to_send_buffer(incoming_serial_byte);
+          AddToSendBuffer(incoming_serial_byte);
 #ifdef DEBUG_WINKEY
           USB_print("WK: add_to_send_buffer:");
 					sprintf(izp, " %d: %d\r\n", incoming_serial_byte, send_buffer_bytes);
@@ -1004,7 +1003,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 #endif //DEBUG_WINKEY          
           winkey_sending=0x04;
 #if !defined(OPTION_WINKEY_UCXLOG_SUPRESS_C4_STATUS_BYTE)
-					winkey_port_write(0xc4|winkey_sending|winkey_xoff,0);  // tell the client we're starting to send
+					WinkeyPortWrite(0xc4|winkey_sending|winkey_xoff,0);  // tell the client we're starting to send
 #endif //OPTION_WINKEY_UCXLOG_SUPRESS_C4_STATUS_BYTE
         }
       } else {
@@ -1053,7 +1052,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 #endif //DEBUG_WINKEY               
             break;
           case 0x07:
-            winkey_port_write(((pot_value_wpm()-pot_wpm_low_value)|128),0);
+            WinkeyPortWrite(((PotValueWPM()-pot_wpm_low_value)|128),0);
 #ifdef DEBUG_WINKEY
             USB_print("WK: report pot\r\n");
 #endif //DEBUG_WINKEY               
@@ -1073,11 +1072,11 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
             winkey_status = WINKEY_SET_PINCONFIG_COMMAND;
             break;
           case 0x0a:                 // 0A - clear buffer - no parms
-            clear_send_buffer();
+            ClearSendBuffer();
             if (winkey_sending) {
               //clear_send_buffer();
               winkey_sending = 0;
-              winkey_port_write(0xc0|winkey_sending|winkey_xoff,0);
+              WinkeyPortWrite(0xc0|winkey_sending|winkey_xoff,0);
             }
             flags.pause_sending_buffer = 0;
             winkey_buffer_counter = 0;
@@ -1087,7 +1086,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
             #endif
             sending_mode = AUTOMATIC_SENDING;
             flags.manual_ptt_invoke = 0;
-            tx_key(0); 
+            TxKey(0); 
             winkey_speed_state = WINKEY_UNBUFFERED_SPEED;
             setting.wpm = winkey_last_unbuffered_speed_wpm;
 #ifdef DEBUG_WINKEY
@@ -1162,7 +1161,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
               if (send_buffer_status == SERIAL_SEND_BUFFER_TIMED_COMMAND) {
                 status_byte_to_send = status_byte_to_send | 16;
               }
-              winkey_port_write(status_byte_to_send,0);
+              WinkeyPortWrite(status_byte_to_send,0);
 #ifdef DEBUG_WINKEY
               USB_print("WK: 0x15 rpt status: ");
 							sprintf(izp, "%d\r\n", status_byte_to_send);
@@ -1242,9 +1241,9 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
               USB_print("WINKEY_CANCEL_BUFFERED_SPEED_COMMAND\r\n");
 #endif //DEBUG_WINKEY     
             if (winkey_speed_state == WINKEY_BUFFERED_SPEED){
-              add_to_send_buffer(SERIAL_SEND_BUFFER_WPM_CHANGE);
-              add_to_send_buffer(0);
-              add_to_send_buffer((uint8_t)winkey_last_unbuffered_speed_wpm);
+              AddToSendBuffer(SERIAL_SEND_BUFFER_WPM_CHANGE);
+              AddToSendBuffer(0);
+              AddToSendBuffer((uint8_t)winkey_last_unbuffered_speed_wpm);
               winkey_speed_state = WINKEY_UNBUFFERED_SPEED;
 #ifdef DEBUG_WINKEY
               USB_print("winkey_speed_state = WINKEY_UNBUFFERED_SPEED\r\n");
@@ -1286,7 +1285,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 				USB_print(izp);
 #endif //DEBUG_WINKEY          
         if (winkey_parmcount == 0) {
-          winkey_port_write(0xc0|winkey_sending|winkey_xoff,0);           
+          WinkeyPortWrite(0xc0|winkey_sending|winkey_xoff,0);           
           winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
 #ifdef DEBUG_WINKEY
           USB_print("WINKEY_UNSUPPORTED_COMMAND: WINKEY_NO_COMMAND_IN_PROGRESS");
@@ -1298,7 +1297,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 			
       //WINKEY_LOAD_SETTINGS_PARM_1_COMMAND IS 101
       if ((winkey_status > 100) && (winkey_status < 116)) {   // Load Settings Command - this has 15 parameters, so we handle it a bit differently
-        winkey_load_settings_command(winkey_status,incoming_serial_byte);
+        WinkeyLoadSettingsCommand(winkey_status,incoming_serial_byte);
         winkey_status++;
         if (winkey_status > 115) {
           winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
@@ -1315,28 +1314,28 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 #endif //OPTION_WINKEY_EXTENDED_COMMANDS_WITH_DOLLAR_SIGNS
 
       if (winkey_status == WINKEY_SET_PINCONFIG_COMMAND) {
-        winkey_set_pinconfig_command(incoming_serial_byte);
+        WinkeySetPinconfigCommand(incoming_serial_byte);
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 
       if (winkey_status == WINKEY_MERGE_COMMAND) {
-        add_to_send_buffer(SERIAL_SEND_BUFFER_PROSIGN);
-        add_to_send_buffer(incoming_serial_byte);
+        AddToSendBuffer(SERIAL_SEND_BUFFER_PROSIGN);
+        AddToSendBuffer(incoming_serial_byte);
         winkey_status = WINKEY_MERGE_PARM_2_COMMAND;
       } else {
         if (winkey_status == WINKEY_MERGE_PARM_2_COMMAND) {
-          add_to_send_buffer(incoming_serial_byte);
+          AddToSendBuffer(incoming_serial_byte);
           winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
         }
       }
 
       if (winkey_status == WINKEY_UNBUFFERED_SPEED_COMMAND) {
-        winkey_unbuffered_speed_command(incoming_serial_byte);
+        WinkeyUnbufferedSpeedCommand(incoming_serial_byte);
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 
 			if (winkey_status == WINKEY_FARNSWORTH_COMMAND) {
-        winkey_farnsworth_command(incoming_serial_byte);
+        WinkeyFarnsworthCommand(incoming_serial_byte);
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 			
@@ -1357,9 +1356,9 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 				sprintf(izp, "%d\r\n", send_buffer_bytes);
 				USB_print(izp);
 #endif //DEBUG_WINKEY         
-        add_to_send_buffer(SERIAL_SEND_BUFFER_WPM_CHANGE);
-        add_to_send_buffer(0);
-        add_to_send_buffer(incoming_serial_byte);
+        AddToSendBuffer(SERIAL_SEND_BUFFER_WPM_CHANGE);
+        AddToSendBuffer(0);
+        AddToSendBuffer(incoming_serial_byte);
 #ifdef DEBUG_WINKEY
         USB_print("WK: BUFFERED_SPEED_CMD:send_buffer_bytes: ");
 				sprintf(izp, "%d\r\n", send_buffer_bytes);
@@ -1374,33 +1373,33 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 			if (winkey_status == WINKEY_BUFFERED_HSCW_COMMAND) {   
         if (incoming_serial_byte > 1){  // the HSCW command is overloaded; 0 = buffered TX 1, 1 = buffered TX 2, > 1 = HSCW WPM
           unsigned int send_buffer_wpm = ((incoming_serial_byte*100)/5);
-          add_to_send_buffer(SERIAL_SEND_BUFFER_WPM_CHANGE);
-          add_to_send_buffer(highByte(send_buffer_wpm));
-          add_to_send_buffer(lowByte(send_buffer_wpm));
+          AddToSendBuffer(SERIAL_SEND_BUFFER_WPM_CHANGE);
+          AddToSendBuffer(highByte(send_buffer_wpm));
+          AddToSendBuffer(lowByte(send_buffer_wpm));
         } else {
-          add_to_send_buffer(SERIAL_SEND_BUFFER_TX_CHANGE);
-          add_to_send_buffer(incoming_serial_byte+1);
+          AddToSendBuffer(SERIAL_SEND_BUFFER_TX_CHANGE);
+          AddToSendBuffer(incoming_serial_byte+1);
         }
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 			
 			if (winkey_status == WINKEY_KEY_BUFFERED_COMMAND) {
-        add_to_send_buffer(SERIAL_SEND_BUFFER_TIMED_KEY_DOWN);
-        add_to_send_buffer(incoming_serial_byte);
+        AddToSendBuffer(SERIAL_SEND_BUFFER_TIMED_KEY_DOWN);
+        AddToSendBuffer(incoming_serial_byte);
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 			
       if (winkey_status == WINKEY_WAIT_BUFFERED_COMMAND) {
-        add_to_send_buffer(SERIAL_SEND_BUFFER_TIMED_WAIT);
-        add_to_send_buffer(incoming_serial_byte);
+        AddToSendBuffer(SERIAL_SEND_BUFFER_TIMED_WAIT);
+        AddToSendBuffer(incoming_serial_byte);
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 			
       if (winkey_status == WINKEY_BUFFFERED_PTT_COMMMAND) {
         if (incoming_serial_byte) {
-          add_to_send_buffer(SERIAL_SEND_BUFFER_PTT_ON);
+          AddToSendBuffer(SERIAL_SEND_BUFFER_PTT_ON);
         } else {
-          add_to_send_buffer(SERIAL_SEND_BUFFER_PTT_OFF);
+          AddToSendBuffer(SERIAL_SEND_BUFFER_PTT_OFF);
         }
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
@@ -1456,7 +1455,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
             }
             winkey_buffer_pointer++;
           } else {
-              add_to_send_buffer(SERIAL_SEND_BUFFER_NULL);
+              AddToSendBuffer(SERIAL_SEND_BUFFER_NULL);
               winkey_buffer_counter++;
           }
         }
@@ -1548,7 +1547,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 #ifdef OPTION_WINKEY_2_SUPPORT
               winkey_port_write(WINKEY_2_REPORT_VERSION_NUMBER,1);
 #else //OPTION_WINKEY_2_SUPPORT
-              winkey_port_write(WINKEY_1_REPORT_VERSION_NUMBER,1);
+              WinkeyPortWrite(WINKEY_1_REPORT_VERSION_NUMBER,1);
 #endif //OPTION_WINKEY_2_SUPPORT
             winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
             flags.manual_ptt_invoke = 0;
@@ -1572,10 +1571,6 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
             USB_print("WK: hostclose\r\n");
 #endif //DEBUG_WINKEY                  
             flags.config_dirty = 1;
-            #if defined(OPTION_WINKEY_2_SUPPORT) && !defined(OPTION_WINKEY_2_HOST_CLOSE_NO_SERIAL_PORT_RESET)
-              primary_serial_port->end();
-              primary_serial_port->begin(1200);
-            #endif
             break;
           case 0x04:  // echo command
             winkey_status = WINKEY_ADMIN_COMMAND_ECHO;
@@ -1584,14 +1579,14 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 #endif //DEBUG_WINKEY              
             break;
           case 0x05: // paddle A2D
-            winkey_port_write(WINKEY_RETURN_THIS_FOR_ADMIN_PADDLE_A2D,0);
+            WinkeyPortWrite(WINKEY_RETURN_THIS_FOR_ADMIN_PADDLE_A2D,0);
             winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
 #ifdef DEBUG_WINKEY
 					USB_print("WK: paddleA2D\r\n");
 #endif //DEBUG_WINKEY              
             break;
           case 0x06: // speed A2D
-            winkey_port_write(WINKEY_RETURN_THIS_FOR_ADMIN_SPEED_A2D,0);
+            WinkeyPortWrite(WINKEY_RETURN_THIS_FOR_ADMIN_SPEED_A2D,0);
             winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
 #ifdef DEBUG_WINKEY
             USB_print("WK: speedA2D\r\n");
@@ -1601,7 +1596,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 #ifdef DEBUG_WINKEY
             USB_print("winkey_admin_get_values\r\n");
 #endif //DEBUG_WINKEY             
-            winkey_admin_get_values_command();
+            WinkeyAdminGetValuesCommand();
             winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
             break;
           case 0x08: // reserved
@@ -1614,7 +1609,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 #ifdef DEBUG_WINKEY
             USB_print("WK: ADMIN_CMD getcal\r\n");
 #endif //DEBUG_WINKEY           
-            winkey_port_write(WINKEY_RETURN_THIS_FOR_ADMIN_GET_CAL,0);
+            WinkeyPortWrite(WINKEY_RETURN_THIS_FOR_ADMIN_GET_CAL,0);
             winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
             break;
 #ifdef OPTION_WINKEY_2_SUPPORT
@@ -1693,7 +1688,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 #ifdef DEBUG_WINKEY
           USB_print("WK: echoabyte\r\n");
 #endif //DEBUG_WINKEY  
-          winkey_port_write(incoming_serial_byte,1);
+          WinkeyPortWrite(incoming_serial_byte,1);
           winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
         }
       }
@@ -1732,50 +1727,50 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 			if (winkey_status ==  WINKEY_KEY_COMMAND) {
         sending_mode = AUTOMATIC_SENDING;
         if (incoming_serial_byte) {
-          tx_key(1);
+          TxKey(1);
         } else {
-          tx_key(0);
+          TxKey(0);
         }
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 			
 			if (winkey_status ==  WINKEY_DAH_TO_DIT_RATIO_COMMAND) {
-        winkey_dah_to_dit_ratio_command(incoming_serial_byte);
+        WinkeyDashToDotRatioCommand(incoming_serial_byte);
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 
       if (winkey_status == WINKEY_WEIGHTING_COMMAND) {
-        winkey_weighting_command(incoming_serial_byte);
+        WinkeyWeightingCommand(incoming_serial_byte);
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 			
       if (winkey_status == WINKEY_PTT_TIMES_PARM1_COMMAND) {
-        winkey_ptt_times_parm1_command(incoming_serial_byte);
+        WinkeyPttTimesParm1Command(incoming_serial_byte);
         winkey_status = WINKEY_PTT_TIMES_PARM2_COMMAND;
       } else {
         if (winkey_status == WINKEY_PTT_TIMES_PARM2_COMMAND) {
-          winkey_ptt_times_parm2_command(incoming_serial_byte);
+          WinkeyPttTimesParm2Command(incoming_serial_byte);
           winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
         }
       }
 
 			if (winkey_status == WINKEY_SET_POT_PARM1_COMMAND) {
-        winkey_set_pot_parm1_command(incoming_serial_byte);
+        WinkeySetPotParm1Command(incoming_serial_byte);
         winkey_status = WINKEY_SET_POT_PARM2_COMMAND;
       } else {
         if (winkey_status == WINKEY_SET_POT_PARM2_COMMAND) {
-          winkey_set_pot_parm2_command(incoming_serial_byte);
+          WinkeySetPotParm2Command(incoming_serial_byte);
           winkey_status = WINKEY_SET_POT_PARM3_COMMAND;
         } else {
           if (winkey_status == WINKEY_SET_POT_PARM3_COMMAND) {  // third parm is max read value from pot, depending on wiring
-            winkey_set_pot_parm3_command(incoming_serial_byte); // WK2 protocol just ignores this third parm
+            WinkeySetPotParm3Command(incoming_serial_byte); // WK2 protocol just ignores this third parm
             winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;      // this is taken care of in winkey_set_pot_parm3()
           }
         }
       }
 
 			if (winkey_status ==  WINKEY_SETMODE_COMMAND) {
-        winkey_setmode_command(incoming_serial_byte);
+        WinkeySetmodeCommand(incoming_serial_byte);
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 			
@@ -1790,7 +1785,7 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
       }
 
 			if (winkey_status ==  WINKEY_SIDETONE_FREQ_COMMAND) {
-        winkey_sidetone_freq_command(incoming_serial_byte);
+        WinkeySidetoneFreqCommand(incoming_serial_byte);
         winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
       }
 
@@ -1799,10 +1794,10 @@ void service_winkey(uint8_t action, uint8_t incoming_serial_byte) {
 	
 }
 
-void service_winkey_breakin(void)
+void ServiceWinkeyBreakin(void)
 {
 	if (flags.send_winkey_breakin_byte_flag){
-    winkey_port_write(0xc2|winkey_sending|winkey_xoff,0); // 0xc2 - BREAKIN bit set high
+    WinkeyPortWrite(0xc2|winkey_sending|winkey_xoff,0); // 0xc2 - BREAKIN bit set high
     flags.winkey_interrupted = 1;
     flags.send_winkey_breakin_byte_flag = 0;
 #ifdef DEBUG_WINKEY
@@ -1812,7 +1807,7 @@ void service_winkey_breakin(void)
 }
 
 
-void check_dot_paddle(void)
+void CheckDotPaddle(void)
 {
   int8_t pin_value = 0;
 
@@ -1850,12 +1845,12 @@ void check_dot_paddle(void)
       #endif
 		}
 #endif
-		clear_send_buffer();
+		ClearSendBuffer();
 	}
 }
 
 
-void check_dash_paddle(void)
+void CheckDashPaddle(void)
 {
   int8_t pin_value;
 
@@ -1875,20 +1870,20 @@ void check_dash_paddle(void)
     #ifdef FEATURE_MEMORIES
       repeat_memory = 255;
     #endif
-    clear_send_buffer();
+    ClearSendBuffer();
     flags.manual_ptt_invoke = 0;
   }
 }
 
 
-void check_paddles(void)
+void CheckPaddles(void)
 {
 	static int8_t last_closure = NO_CLOSURE;
 #ifdef DEBUG
 	USB_print("loop: entering check_paddles\r\n");
 #endif  
-  check_dot_paddle();
-  check_dash_paddle();  
+  CheckDotPaddle();
+  CheckDashPaddle();  
 
 	if (flags.winkey_dit_invoke) flags.dot_buffer = 1;
 	if (flags.winkey_dah_invoke) flags.dash_buffer = 1;
@@ -2067,14 +2062,14 @@ void check_paddles(void)
   } //if (configuration.keyer_mode == SINGLE_PADDLE)
 }
 
-void ptt_key(void)
+void PttKey(void)
 {
 
   uint32_t ptt_activation_time = HAL_GetTick();
   uint8_t all_delays_satisfied = 0;
   
   if (flags.ptt_line_activated == 0) {   // if PTT is currently deactivated, bring it up and insert PTT lead time delay
-		set_txled(1); // Set TX led
+		SetTxLed(1); // Set TX led
 		sequencer_ptt_inactive_time = 0;
 
 		flags.ptt_line_activated = 1;
@@ -2082,19 +2077,19 @@ USB_print("PTT ON\r\n");
 	while (!all_delays_satisfied){
 		uint32_t t = HAL_GetTick();
         if (((t - ptt_activation_time) >= setting.chdelay[0]) && !ch[0].on){
-					set_ch(0, 1);
+					SetCh(0, 1);
 					ch[0].on = 1;
         }
 				if (((t - ptt_activation_time) >= setting.chdelay[1]) && !ch[1].on){
-					set_ch(1, 1);
+					SetCh(1, 1);
 					ch[1].on = 1;
         }          
 				if (((t - ptt_activation_time) >= setting.chdelay[2]) && !ch[3].on){
-					set_ch(2, 1);
+					SetCh(2, 1);
 					ch[2].on = 1;
         }          
 				if (((t - ptt_activation_time) >= setting.chdelay[3]) && !ch[3].on){
-					set_ch(3, 1);
+					SetCh(3, 1);
 					ch[3].on = 1;
         }          
 
@@ -2108,14 +2103,14 @@ USB_print("PTT ON\r\n");
 }
 
 
-void check_sequencer_tail_time()
+void CheckSequencerTailTime()
 	{
 	int i;
 	uint32_t t = HAL_GetTick();
   if (sequencer_ptt_inactive_time){
 			for (i=0; i<4; i++) {
 				if (ch[i].on && ((t - sequencer_ptt_inactive_time) >= setting.chtail[i])){
-					set_ch(i, 0);
+					SetCh(i, 0);
 					ch[i].on = 0;
 				}
 			}
@@ -2129,11 +2124,11 @@ void check_sequencer_tail_time()
 }
 
 
-void ptt_unkey(void)
+void PttUnkey(void)
 {
   if (flags.ptt_line_activated) {
 USB_print("PTT OFF\r\n");
-		set_txled(0); // Reset TX led
+		SetTxLed(0); // Reset TX led
 		flags.ptt_line_activated = 0;
 		sequencer_ptt_inactive_time = HAL_GetTick();
   }
@@ -2142,9 +2137,7 @@ USB_print("PTT OFF\r\n");
 
 
 
-
-
-void loop_element_lengths(float lengths, float additional_time_ms, uint8_t speed_wpm_in)
+void LoopElementLengths(float lengths, float additional_time_ms, uint8_t speed_wpm_in)
 {
 	float element_length;
 
@@ -2160,7 +2153,7 @@ void loop_element_lengths(float lengths, float additional_time_ms, uint8_t speed
   uint64_t start = micros;
 
   while (((micros - start) < ticks)){
-    check_ptt_tail();
+    CheckPttTail();
     if ((setting.keyer_mode != ULTIMATIC) && (setting.keyer_mode != SINGLE_PADDLE)) {
       if ((setting.keyer_mode == IAMBIC_A) && HAL_GPIO_ReadPin(GPIOF, CW_DOT) == 0 && HAL_GPIO_ReadPin(GPIOF, CW_DASH) == 0) {
         flags.iambic_flag = 1;
@@ -2168,13 +2161,13 @@ void loop_element_lengths(float lengths, float additional_time_ms, uint8_t speed
      
 #ifndef FEATURE_CMOS_SUPER_KEYER_IAMBIC_B_TIMING
           if (being_sent == SENDING_DIT) {
-            check_dash_paddle();
+            CheckDashPaddle();
           } else {
             if (being_sent == SENDING_DAH) {
-              check_dot_paddle();
+              CheckDotPaddle();
             } else {
-              check_dash_paddle();
-              check_dot_paddle();                
+              CheckDashPaddle();
+              CheckDotPaddle();                
             }
           }            
         #else ////FEATURE_CMOS_SUPER_KEYER_IAMBIC_B_TIMING
@@ -2183,10 +2176,10 @@ void loop_element_lengths(float lengths, float additional_time_ms, uint8_t speed
             if ((float(float(micros-start)/float(ticks))*100) >= configuration.cmos_super_keyer_iambic_b_timing_percent) {
             //if ((float(float(millis()-starttime)/float(starttime-ticks))*100) >= configuration.cmos_super_keyer_iambic_b_timing_percent) {
              if (being_sent == SENDING_DIT) {
-                check_dah_paddle();
+                CheckDashPaddle();
               } else {
                 if (being_sent == SENDING_DAH) {
-                  check_dit_paddle();
+                  CheckDotPaddle();
                 }
               }     
             } else {
@@ -2197,13 +2190,13 @@ void loop_element_lengths(float lengths, float additional_time_ms, uint8_t speed
             }
           } else {
             if (being_sent == SENDING_DIT) {
-              check_dah_paddle();
+              CheckDashPaddle();
             } else {
               if (being_sent == SENDING_DAH) {
-                check_dit_paddle();
+                CheckDotPaddle();
               } else {
-                check_dah_paddle();
-                check_dit_paddle();                
+                CheckDashPaddle();
+                CheckDotPaddle();                
               }
             }  
           }  
@@ -2211,13 +2204,13 @@ void loop_element_lengths(float lengths, float additional_time_ms, uint8_t speed
 
       } else { //(configuration.keyer_mode != ULTIMATIC)
         if (being_sent == SENDING_DIT) {
-          check_dash_paddle();
+          CheckDashPaddle();
         } else {
           if (being_sent == SENDING_DAH) {
-            check_dot_paddle();
+            CheckDotPaddle();
           } else {
-            check_dash_paddle();
-            check_dot_paddle();                
+            CheckDashPaddle();
+            CheckDotPaddle();                
           }
         }   
       }
@@ -2248,7 +2241,7 @@ void loop_element_lengths(float lengths, float additional_time_ms, uint8_t speed
 
 
 
-void send_dot(void)
+void SendDot(void)
 {
   // notes: key_compensation is a straight x mS lengthening or shortening of the key down time
   //        weighting is
@@ -2267,12 +2260,12 @@ void send_dot(void)
 	}
 #endif
   being_sent = SENDING_DIT;
-  tx_key(1);
-  set_cw(1);
-	loop_element_lengths((1.0*((float)(setting.weighting)/50)),keying_compensation,character_wpm);
-	set_cw(0);
-  tx_key(0);
-  loop_element_lengths((2.0-((float)(setting.weighting)/50)),(-1.0*keying_compensation),character_wpm);
+  TxKey(1);
+  SetCw(1);
+	LoopElementLengths((1.0*((float)(setting.weighting)/50)),keying_compensation,character_wpm);
+	SetCw(0);
+  TxKey(0);
+  LoopElementLengths((2.0-((float)(setting.weighting)/50)),(-1.0*keying_compensation),character_wpm);
 
   #ifdef FEATURE_AUTOSPACE
 
@@ -2303,11 +2296,11 @@ void send_dot(void)
 
   being_sent = SENDING_NOTHING;
   last_sending_mode = sending_mode;
-  check_paddles();
+  CheckPaddles();
 }
 
 
-void send_dash(void)
+void SendDash(void)
 {
   unsigned int character_wpm  = setting.wpm;
 
@@ -2317,19 +2310,19 @@ void send_dash(void)
 
 
   being_sent = SENDING_DAH;
-  tx_key(1);
-  set_cw(1);
-  loop_element_lengths(((float)(setting.dah_to_dit_ratio/100.0)*((float)(setting.weighting)/50)),keying_compensation,character_wpm);
-  set_cw(0);
-  tx_key(0);
+  TxKey(1);
+  SetCw(1);
+  LoopElementLengths(((float)(setting.dah_to_dit_ratio/100.0)*((float)(setting.weighting)/50)),keying_compensation,character_wpm);
+  SetCw(0);
+  TxKey(0);
 
-  loop_element_lengths((4.0-(3.0*((float)(setting.weighting)/50))),(-1.0*keying_compensation),character_wpm);
+  LoopElementLengths((4.0-(3.0*((float)(setting.weighting)/50))),(-1.0*keying_compensation),character_wpm);
 
 #ifdef FEATURE_AUTOSPACE
   byte autospace_end_of_character_flag = 0;
 
   if ((sending_mode == MANUAL_SENDING) && (configuration.autospace_active)) {
-    check_paddles();
+    CheckPaddles();
   }
   if ((sending_mode == MANUAL_SENDING) && (configuration.autospace_active) && (dit_buffer == 0) && (dah_buffer == 0)) {
     loop_element_lengths(2,0,configuration.wpm);
@@ -2363,14 +2356,14 @@ void send_dash(void)
     autospace_end_of_character_flag = 0;
   #endif //FEATURE_AUTOSPACE  
 
-  check_paddles();
+  CheckPaddles();
   being_sent = SENDING_NOTHING;
   last_sending_mode = sending_mode;
 }
 
 
 
-void service_dit_dah_buffers(void)
+void ServiceDotDashBuffers(void)
 {
 
   if (automatic_sending_interruption_time != 0){
@@ -2400,12 +2393,12 @@ void service_dit_dah_buffers(void)
       if (flags.dot_buffer) {
         flags.dot_buffer = 0;
         sending_mode = MANUAL_SENDING;
-        send_dot();
+        SendDot();
       }
       if (flags.dash_buffer) {
         flags.dash_buffer = 0;
         sending_mode = MANUAL_SENDING;
-        send_dash();
+        SendDash();
       }
     }
   } else {
@@ -2413,20 +2406,20 @@ void service_dit_dah_buffers(void)
       if (flags.dot_buffer) {
         flags.dot_buffer = 0;
         sending_mode = MANUAL_SENDING;
-        send_dot();
+        SendDot();
       }
 
       if (flags.dash_buffer) {
         flags.dash_buffer = 0;
         if (!bug_dah_flag) {
           sending_mode = MANUAL_SENDING;
-          tx_key(1);
+          TxKey(1);
           bug_dah_flag = 1; 
         }   
       } else {
         if (bug_dah_flag){
           sending_mode = MANUAL_SENDING;
-          tx_key(0);
+          TxKey(0);
 #ifdef FEATURE_PADDLE_ECHO
             if ((millis() - bug_dah_key_down_time) > (0.5 * (1200.0/configuration.wpm))){
               if ((millis() - bug_dah_key_down_time) > (2 * (1200.0/configuration.wpm))){
@@ -2434,7 +2427,7 @@ void service_dit_dah_buffers(void)
               } else {
                 paddle_echo_buffer = (paddle_echo_buffer * 10) + 1;
               }
-              paddle_echo_buffer_decode_time = millis() + (((float)3000.0/(float)configuration.wpm) * ((float)configuration.cw_echo_timing_factor/(float)100));
+              paddle_echo_buffer_decode_time = HAL_GetTick() + (((float)3000.0/(float)configuration.wpm) * ((float)configuration.cw_echo_timing_factor/(float)100));
             }
 #endif //FEATURE_PADDLE_ECHO            
           bug_dah_flag = 0;
@@ -2445,17 +2438,17 @@ void service_dit_dah_buffers(void)
         if (flags.dot_buffer) {
           flags.dot_buffer = 0;
           sending_mode = MANUAL_SENDING;
-          tx_key(1);
+          TxKey(1);
         } else {
           sending_mode = MANUAL_SENDING;
-          tx_key(0);
+          TxKey(0);
         }
       }
     }
   }
 }
 
-void check_ptt_tail(void)
+void CheckPttTail(void)
 {
 #ifdef DEBUG
     USB_print("loop: entering check_ptt_tail\r\n");
@@ -2464,13 +2457,13 @@ void check_ptt_tail(void)
   if (HAL_GPIO_ReadPin(GPIOA, PTT_IN) == 0){
 		if (!flags.manual_ptt_invoke){
         flags.manual_ptt_invoke = 1;
-        ptt_key();
+        PttKey();
         return; 
 		}
 	} else {
 		if (flags.manual_ptt_invoke){
 			flags.manual_ptt_invoke = 0;
-			if (!flags.key_state) ptt_unkey();
+			if (!flags.key_state) PttUnkey();
 		}
 	}  
 
@@ -2482,16 +2475,16 @@ void check_ptt_tail(void)
 			if (last_sending_mode == MANUAL_SENDING) {
         // PTT Tail Time: N     PTT Hang Time: Y
 				if ((HAL_GetTick() - ptt_time) >= ((setting.length_wordspace*setting.ptt_hang_time_wordspace_units)*(uint32_t)(1200/setting.wpm)) ) {
-					ptt_unkey();
+					PttUnkey();
 				}          
 			} else { // automatic sending
 				if (flags.winkey_host_open){
 					if (((HAL_GetTick() - ptt_time) > (((int)(winkey_session_ptt_tail) * 10) + (3 * (1200/setting.wpm)))) && ( !setting.ptt_buffer_hold_active || ((!send_buffer_bytes) && setting.ptt_buffer_hold_active) || (flags.pause_sending_buffer))) {
-              ptt_unkey();
+              PttUnkey();
             }
 				} else {
 					if (((HAL_GetTick() - ptt_time) > setting.ptt_tail_time) && ( !setting.ptt_buffer_hold_active || ((!send_buffer_bytes) && setting.ptt_buffer_hold_active) || (flags.pause_sending_buffer))){
-						ptt_unkey();
+						PttUnkey();
 					}            
 				}  
 			}
@@ -2499,7 +2492,7 @@ void check_ptt_tail(void)
 	}
 }
 
-void send_char(uint8_t cw_char, uint8_t omit_letterspace)
+void SendChar(uint8_t cw_char, uint8_t omit_letterspace)
 {
 	uint16_t idx = 0x8000, key;
 	
@@ -2524,12 +2517,12 @@ void send_char(uint8_t cw_char, uint8_t omit_letterspace)
 		idx>>=1; // shift right one to initial dit/dah bit
 		
 		while(idx) {
-			if (key & idx) send_dash();
-			else send_dot();
+			if (key & idx) SendDash();
+			else SendDot();
 			idx>>=1;
 			if ((flags.dot_buffer || flags.dash_buffer || sending_mode == AUTOMATIC_SENDING_INTERRUPTED)){
 				// Interrupted
-				winkey_port_write(0xc2|winkey_sending|winkey_xoff,0); // 0xc2 - BREAKIN bit set high
+				WinkeyPortWrite(0xc2|winkey_sending|winkey_xoff,0); // 0xc2 - BREAKIN bit set high
 				flags.dot_buffer = 0;
 				flags.dash_buffer = 0;
 				break;
@@ -2538,7 +2531,7 @@ void send_char(uint8_t cw_char, uint8_t omit_letterspace)
 	}
 	
   if (omit_letterspace != OMIT_LETTERSPACE) {
-    loop_element_lengths((length_letterspace-1),0, setting.wpm); //this is minus one because send_dit and send_dah have a trailing element space
+    LoopElementLengths((length_letterspace-1),0, setting.wpm); //this is minus one because send_dit and send_dah have a trailing element space
   }
 
   // Farnsworth Timing : http://www.arrl.org/files/file/Technology/x9004008.pdf
@@ -2551,7 +2544,7 @@ void send_char(uint8_t cw_char, uint8_t omit_letterspace)
 	return;
 }
 
-void service_send_buffer(uint8_t no_print)
+void ServiceSendBuffer(uint8_t no_print)
 {
 	  // send one character out of the send buffer
 #ifdef DEBUG_LOOP
@@ -2573,14 +2566,14 @@ void service_send_buffer(uint8_t no_print)
 					USB_print("service_send_buffer: SERIAL_SEND_BUFFER_HOLD_SEND\r\n");
 #endif
 					send_buffer_status = SERIAL_SEND_BUFFER_HOLD;
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
 				}
 				
 				if (send_buffer_array[0] == SERIAL_SEND_BUFFER_HOLD_SEND_RELEASE) {
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
 					USB_print("service_send_buffer: SERIAL_SEND_BUFFER_HOLD_SEND_RELEASE\r\n");
 #endif
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
         }
 
 				if (send_buffer_array[0] == SERIAL_SEND_BUFFER_MEMORY_NUMBER) {
@@ -2592,17 +2585,17 @@ void service_send_buffer(uint8_t no_print)
 					USB_print("service_send_buffer: SERIAL_SEND_BUFFER_MEMORY_NUMBER\r\n"));
 #endif
           if (winkey_sending && flags.winkey_host_open) {
-            winkey_port_write(0xc0|winkey_sending|winkey_xoff,0);
+            WinkeyPortWrite(0xc0|winkey_sending|winkey_xoff,0);
             flags.winkey_interrupted = 1;
           }
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
           if (send_buffer_bytes) {
             if (send_buffer_array[0] < 5) {
 #ifdef FEATURE_MEMORIES
                 play_memory(send_buffer_array[0]);
 #endif
 						}
-            remove_from_send_buffer();
+            RemoveFromSendBuffer();
           }
         }
 
@@ -2615,7 +2608,7 @@ void service_send_buffer(uint8_t no_print)
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
             USB_print("service_send_buffer: SERIAL_SEND_BUFFER_WPM_CHANGE: send_buffer_bytes>2\r\n");
 #endif
-            remove_from_send_buffer();
+            RemoveFromSendBuffer();
 
               if ((flags.winkey_host_open) && (winkey_speed_state == WINKEY_UNBUFFERED_SPEED)){
                 winkey_speed_state = WINKEY_BUFFERED_SPEED;
@@ -2625,9 +2618,9 @@ void service_send_buffer(uint8_t no_print)
                 winkey_last_unbuffered_speed_wpm = setting.wpm;
               }
             setting.wpm = send_buffer_array[0] * 256;
-            remove_from_send_buffer();
+            RemoveFromSendBuffer();
             setting.wpm = setting.wpm + send_buffer_array[0];
-            remove_from_send_buffer();
+            RemoveFromSendBuffer();
           } else {
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
             USB_print("service_send_buffer:SERIAL_SEND_BUFFER_WPM_CHANGE < 2\r\n");
@@ -2643,12 +2636,12 @@ void service_send_buffer(uint8_t no_print)
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
           USB_print("service_send_buffer: SERIAL_SEND_BUFFER_TX_CHANGE\r\n");
 #endif
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
           if (send_buffer_bytes > 1) {
             // if ((send_buffer_array[0] > 0) && (send_buffer_array[0] < 7)){
             //   switch_to_tx_silent(send_buffer_array[0]);
             // }
-            remove_from_send_buffer();          
+            RemoveFromSendBuffer();          
           }
         }
 
@@ -2656,31 +2649,31 @@ void service_send_buffer(uint8_t no_print)
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
           USB_print("service_send_buffer: SERIAL_SEND_BUFFER_NULL\r\n");
 #endif
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
         }
 
 				if (send_buffer_array[0] == SERIAL_SEND_BUFFER_PROSIGN) {
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
           USB_print("service_send_buffer: SERIAL_SEND_BUFFER_PROSIGN\r\n");
 #endif
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
           if (send_buffer_bytes) {
-            send_char(send_buffer_array[0],OMIT_LETTERSPACE);
+            SendChar(send_buffer_array[0],OMIT_LETTERSPACE);
             if (flags.winkey_host_open){
               // Must echo back PROSIGN characters sent  N6TV
-              winkey_port_write(0xc4|winkey_sending|winkey_xoff,0);  // N6TV
-              winkey_port_write(send_buffer_array[0],0);  // N6TV  
+              WinkeyPortWrite(0xc4|winkey_sending|winkey_xoff,0);  // N6TV
+              WinkeyPortWrite(send_buffer_array[0],0);  // N6TV  
             }          
-            remove_from_send_buffer();
+            RemoveFromSendBuffer();
           }
           if (send_buffer_bytes) {
-            send_char(send_buffer_array[0],KEYER_NORMAL);
+            SendChar(send_buffer_array[0],KEYER_NORMAL);
               if (flags.winkey_host_open){
                 // Must echo back PROSIGN characters sent  N6TV
-                winkey_port_write(0xc4|winkey_sending|winkey_xoff,0);  // N6TV
-                winkey_port_write(send_buffer_array[0],0);  // N6TV  
+                WinkeyPortWrite(0xc4|winkey_sending|winkey_xoff,0);  // N6TV
+                WinkeyPortWrite(send_buffer_array[0],0);  // N6TV  
               }          
-            remove_from_send_buffer();
+            RemoveFromSendBuffer();
           }
         }
 
@@ -2689,14 +2682,14 @@ void service_send_buffer(uint8_t no_print)
           USB_print("service_send_buffer: SERIAL_SEND_BUFFER_TIMED_KEY_DOWN\r\n");
 #endif
 
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
           if (send_buffer_bytes) {
             send_buffer_status = SERIAL_SEND_BUFFER_TIMED_COMMAND;
             sending_mode = AUTOMATIC_SENDING;
-            tx_key(1);
+            TxKey(1);
             timed_command_end_time = HAL_GetTick() + (send_buffer_array[0] * 1000);
             timed_command_in_progress = SERIAL_SEND_BUFFER_TIMED_KEY_DOWN;
-            remove_from_send_buffer();
+            RemoveFromSendBuffer();
           }
         }
 
@@ -2704,12 +2697,12 @@ void service_send_buffer(uint8_t no_print)
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
           USB_print("service_send_buffer: SERIAL_SEND_BUFFER_TIMED_WAIT\r\n");
 #endif
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
           if (send_buffer_bytes) {
             send_buffer_status = SERIAL_SEND_BUFFER_TIMED_COMMAND;
             timed_command_end_time = HAL_GetTick() + (send_buffer_array[0] * 1000);
             timed_command_in_progress = SERIAL_SEND_BUFFER_TIMED_WAIT;
-            remove_from_send_buffer();
+            RemoveFromSendBuffer();
           }
         }
 				
@@ -2717,26 +2710,26 @@ void service_send_buffer(uint8_t no_print)
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
           USB_print("service_send_buffer: SERIAL_SEND_BUFFER_PTT_ON\r\n");
 #endif
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
           flags.manual_ptt_invoke = 1;
-          ptt_key();
+          PttKey();
         }
 
         if (send_buffer_array[0] == SERIAL_SEND_BUFFER_PTT_OFF) {
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
           USB_print("service_send_buffer: SERIAL_SEND_BUFFER_PTT_OFF\r\n");
 #endif
-          remove_from_send_buffer();
+          RemoveFromSendBuffer();
           flags.manual_ptt_invoke = 0;
-          ptt_unkey();
+          PttUnkey();
         }
 				
       } else {   // if ((send_buffer_array[0] > SERIAL_SEND_BUFFER_SPECIAL_START) && (send_buffer_array[0] < SERIAL_SEND_BUFFER_SPECIAL_END))
         
-				send_char(send_buffer_array[0], KEYER_NORMAL);  //****************
+				SendChar(send_buffer_array[0], KEYER_NORMAL);  //****************
 				
 				if ((flags.winkey_host_open) && (!no_print)) {
-          if ((send_buffer_array[0]!= 0x7C) && (send_buffer_array[0] > 30)) {winkey_port_write(send_buffer_array[0],0);}
+          if ((send_buffer_array[0]!= 0x7C) && (send_buffer_array[0] > 30)) {WinkeyPortWrite(send_buffer_array[0],0);}
         }
 
 				if (!flags.pause_sending_buffer) {
@@ -2748,7 +2741,7 @@ void service_send_buffer(uint8_t no_print)
 #endif
 
 					if (!((send_buffer_array[0] > SERIAL_SEND_BUFFER_SPECIAL_START) && (send_buffer_array[0] < SERIAL_SEND_BUFFER_SPECIAL_END))){ // this is a friggin hack to fix something I can't explain with SO2R - Goody 20191217
-            remove_from_send_buffer();
+            RemoveFromSendBuffer();
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
             USB_print("service_send_buffer: after send_char: remove_from_send_buffer\r\n");
             if (no_bytes_flag){
@@ -2769,7 +2762,7 @@ void service_send_buffer(uint8_t no_print)
     if (send_buffer_status == SERIAL_SEND_BUFFER_TIMED_COMMAND) {    // we're in a timed command
       if ((timed_command_in_progress == SERIAL_SEND_BUFFER_TIMED_KEY_DOWN) && (HAL_GetTick() > timed_command_end_time)) {
         sending_mode = AUTOMATIC_SENDING;
-        tx_key(0);
+        TxKey(0);
         timed_command_in_progress = 0;
         send_buffer_status = SERIAL_SEND_BUFFER_NORMAL;
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
@@ -2802,13 +2795,13 @@ void service_send_buffer(uint8_t no_print)
 	}  //if (send_buffer_status == SERIAL_SEND_BUFFER_NORMAL)
 	
 	//if the paddles are hit, dump the buffer
-  check_paddles();
+  CheckPaddles();
   if (((flags.dot_buffer || flags.dash_buffer) && (send_buffer_bytes)) ) {
 
 #if defined(DEBUG_SERVICE_SEND_BUFFER)
     USB_print("service_send_buffer: buffer dump\r\n");
 #endif
-    clear_send_buffer();
+    ClearSendBuffer();
     send_buffer_status = SERIAL_SEND_BUFFER_NORMAL;
     flags.dot_buffer = 0;
     flags.dash_buffer = 0;    
@@ -2816,14 +2809,18 @@ void service_send_buffer(uint8_t no_print)
     repeat_memory = 255;
 #endif
     if (winkey_sending && flags.winkey_host_open) {
-      winkey_port_write(0xc2|winkey_sending|winkey_xoff,0); // 0xc2 - BREAKIN bit set high
+      WinkeyPortWrite(0xc2|winkey_sending|winkey_xoff,0); // 0xc2 - BREAKIN bit set high
       flags.winkey_interrupted = 1;
     }
   }
 }
 
 
-
+/**
+  * @brief Output current device setting to the console port.
+  * @param None
+  * @retval None
+  */
 void DisplaySettings(void)
 {
 	char izp[50];
@@ -2842,7 +2839,9 @@ void DisplaySettings(void)
 
 
 /**
-  * @brief Store settinfgs 
+  * @brief Store settinfgs to flash memory region.
+  * @param None
+  * @retval None
   */
 void StoreSetting(void)
 {
@@ -2899,19 +2898,23 @@ void StoreSetting(void)
 	flags.config_dirty = 0;
 }
 
+/**
+  * @brief ADC DMA interrupt processor.
+  * @param ADC handler descriptor.
+  * @retval None
+  */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* h)
 {
-    if(h->Instance == ADC1) //check if the interrupt comes from ACD1
-    {
-			HAL_ADC_Stop_DMA(&hadc);
-			flags.irq_adc = 1;
-    }
-	
+	if(h->Instance == ADC1) {
+		//check if the interrupt comes from ACD1
+		HAL_ADC_Stop_DMA(&hadc);
+		flags.irq_adc = 1;
+   }
 }
 
 
 /* Set CW keyer output*/
-void set_cw(char on)
+void SetCw(char on)
 {
 	cw_sidetone = on;
 /*
@@ -2925,8 +2928,14 @@ void set_cw(char on)
 */
 }
 
-/* Set channel output*/
-void set_ch(uint8_t n, uint8_t on)
+
+/**
+  * @brief Set selected output squencer output state
+  * @param n: Channel number from 0 to 3.
+  * @param on: 1 - switch on, 0 - switch off
+  * @retval None
+  */
+void SetCh(uint8_t n, uint8_t on)
 {
 	
 	if(!setting.chrev[n]) {
@@ -2939,22 +2948,31 @@ void set_ch(uint8_t n, uint8_t on)
 	ch[n].on = on;
 }
 
-/* Set tx led */
-void set_txled(char on)
+/** 
+  * @brief Set "TX" led
+  * @param bool: 1 - switch on, 0 - switch off
+  * @retval None
+  */
+void SetTxLed(char on)
 {
 	if (on) HAL_GPIO_WritePin(GPIOA, TX_LED, GPIO_PIN_SET);
 	else HAL_GPIO_WritePin(GPIOA, TX_LED, GPIO_PIN_RESET);
 }
 
-/* Set auto led */
-void set_autoled(char on)
+
+/**
+  * @brief Set "auto" led
+  * @param bool: 1 - switch on, 0 - switch off
+  * @retval None
+  */
+void SetAutoLed(uint8_t on)
 {
 	if (on) HAL_GPIO_WritePin(GPIOB, AUTO_OUT, GPIO_PIN_SET);
 	else HAL_GPIO_WritePin(GPIOB, AUTO_OUT, GPIO_PIN_RESET);
 }
 
 
-void save_default_config(void)
+void SaveDefaultConfig(void)
 {
 	// Ident missmatch - load default setting
 	memset((uint8_t *)&setting, 0, sizeof(settings_t));
@@ -2983,8 +3001,8 @@ void save_default_config(void)
 
 
 /**
-  * @brief  The application entry point.
-  * @retval int
+  * @brief  The application main entry point.
+  * @retval int - not used
   */
 int main(void)
 {
@@ -3008,9 +3026,9 @@ int main(void)
 
 	// Start indicator
 	for (i = 0; i <5; i++) {
-		set_txled(1);
+		SetTxLed(1);
 		Delay(300);
-		set_txled(0);
+		SetTxLed(0);
 		Delay(300);
 	}
 
@@ -3018,7 +3036,7 @@ int main(void)
 	memcpy((uint8_t *)&setting, (const void *)&settings_Store, sizeof(settings_t));
 
 	if (setting.Ident[0]!=0x55 || setting.Ident[1]!=0x66 || setting.Ident[2]!=0x55 || setting.Ident[3]!=0x66) {
-		save_default_config();
+		SaveDefaultConfig();
 	}
 
 	// setup default modes	
@@ -3037,16 +3055,16 @@ int main(void)
 	// Init speed potentiometer
 	pot_wpm_low_value = initial_pot_wpm_low_value;
 	pot_wpm_high_value = initial_pot_wpm_high_value;
-  last_pot_wpm_read = pot_value_wpm();
+  last_pot_wpm_read = PotValueWPM();
 
 	// Display setting
 	DisplaySettings();
 		
 	// Set initial gpio level
-	set_cw(0);
-	for (i=0; i<4; i++) set_ch(i, 0);
-	set_txled(0);
-	set_autoled(0);
+	SetCw(0);
+	for (i=0; i<4; i++) SetCh(i, 0);
+	SetTxLed(0);
+	SetAutoLed(0);
 
 	HAL_TIM_Base_Start_IT(&htim14);
 	
@@ -3064,7 +3082,7 @@ int main(void)
 
 		if(setting.pot_activated) {
 			if (flags.irq_adc) {
-				check_potentiometer();
+				CheckPotentiometer();
 				flags.irq_adc = 0;
 				adc[0] = adc[1] = 0;
 			}
@@ -3074,53 +3092,64 @@ int main(void)
 			}
 		}
 	
-		if (flags.inCommand) ExecuteCmd();	// Command detected
+		if (flags.inCommand) ExecuteCmd();	// Process serial command, if detected.
 		
 		if (flags.winkey_command) {
-			for (i=0; i<winkey_ptr_in; i++) service_winkey(SERVICE_SERIAL_BYTE, winkey_buffer[i]);
+			// USB virtial com port #2 data in from host passed to winkey service.
+			for (i=0; i<winkey_ptr_in; i++) ServiceWinkey(SERVICE_SERIAL_BYTE, winkey_buffer[i]);
 			flags.winkey_command = 0;
 		}
 
-		check_paddles();
-    service_dit_dah_buffers();
-    service_send_buffer(PRINTCHAR);
-    check_ptt_tail();
-		service_winkey(WINKEY_HOUSEKEEPING, 0);
-		service_winkey_breakin();
-		check_sequencer_tail_time();
+		CheckPaddles();
+    ServiceDotDashBuffers();
+    ServiceSendBuffer(PRINTCHAR);
+    CheckPttTail();
+		ServiceWinkey(WINKEY_HOUSEKEEPING, 0);
+		ServiceWinkeyBreakin();
+		CheckSequencerTailTime();
 		if (flags.config_dirty && !flags.ptt_line_activated) {
 			StoreSetting();
 		}
-		
-
   }
 }
 
 
-void check_potentiometer(void)
+
+/**
+  * @brief Check CW speed from potentiometer, set CW speed if needed and report speed to winkey.
+  * @param None
+  * @retval None
+  */
+void CheckPotentiometer(void)
 {
 	static uint32_t last_pot_check_time = 0;
 	
 	if (setting.pot_activated && ((HAL_GetTick() - last_pot_check_time) > potentiometer_check_interval_ms)) {
     last_pot_check_time = HAL_GetTick();
-		uint16_t pot_value_wpm_read = pot_value_wpm();	
+		uint16_t pot_value_wpm_read = PotValueWPM();	
 		if (((abs(pot_value_wpm_read - last_pot_wpm_read) * 10) > (potentiometer_change_threshold * 10))) {
 #ifdef DEBUG
 			char izp[50];
 			snprintf(izp, 40, "check_potentiometer: %d %d\n\r", adc[0], pot_value_wpm_read);
 			USB_print(izp);
 #endif // DEBUG
-			speed_set(pot_value_wpm_read);
+			SpeedSet(pot_value_wpm_read);
 			last_pot_wpm_read = pot_value_wpm_read;
 			if (flags.winkey_host_open) {
-				winkey_port_write(((pot_value_wpm_read-pot_wpm_low_value)|128),0);
+				WinkeyPortWrite(((pot_value_wpm_read-pot_wpm_low_value)|128),0);
 				winkey_last_unbuffered_speed_wpm = setting.wpm;
 			}
 		}
 	}
 }
 
-uint16_t pot_value_wpm(void)
+
+/**
+  * @brief Read CW speed from potentiometer and map result into WPM value
+  * @param None
+  * @retval Value in WPM read from potentiometer.
+  */
+uint16_t PotValueWPM(void)
 {
   static uint16_t last_pot_read = 0;
   static uint16_t return_value = 0;
@@ -3133,7 +3162,12 @@ uint16_t pot_value_wpm(void)
 }
 
 
-void speed_set(uint16_t wpm_set)
+/**
+  * @brief Set CW speed in word per seconds
+  * @param WPM value to set.
+  * @retval None
+  */
+void SpeedSet(uint16_t wpm_set)
 {
 	if ((wpm_set > 0) && (wpm_set < 1000)){
     setting.wpm = wpm_set;

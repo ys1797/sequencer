@@ -49,22 +49,22 @@ struct cmd_st {
 
 // Help text 
 char *helptext = 
-	"Commands:\n\r"
-	" DEFAULT\n\r"
-  " DELAY1 ms\n\r"
-	" DELAY2 ms\n\r"
-	" DELAY3 ms\n\r"
-	" DELAY4 ms\n\r"
-  " CH1_REV x\n\r"
-	" CH2_REV x\n\r"
-	" CH3_REV x\n\r"
-	" CH4_REV x\n\r"
-  " CW_REV x\n\r"
-	" KEYREVERSE x\n\r"
-  " DOTRATIO x\n\r"
-	" WPM x\n\r"
-	" HANGTIME x\n\r"
-	" D\n\r"
+	" Cmds:\n\r"
+	"DEFAULT\n\r"
+  "DELAY1 ms\n\r"
+	"DELAY2 ms\n\r"
+	"DELAY3 ms\n\r"
+	"DELAY4 ms\n\r"
+  "CH1_REV x\n\r"
+	"CH2_REV x\n\r"
+	"CH3_REV x\n\r"
+	"CH4_REV x\n\r"
+  "CW_REV x\n\r"
+	"KEYREVERSE x\n\r"
+  "DOTRATIO x\n\r"
+	"WPM x\n\r"
+	"HANGTIME x\n\r"
+	"D\n\r"
   "\n\r";
 
 /**
@@ -225,8 +225,8 @@ void ExecuteCmd(void)
 
 static void cmd_default(char *argstr_buf)
 {
-	USB_print("Loading default setting..\r\n");
-	save_default_config();
+	USB_print("Loading default..\r\n");
+	SaveDefaultConfig();
 }
 
 
@@ -243,7 +243,7 @@ static void cmd_delay(char ch, char *argstr_buf)
 			flags.config_dirty=1;
 		}
 	}
-	snprintf(param, 32, "Channel #%d delay: %d ms\n\r", ch+1, setting.chdelay[ch]);
+	snprintf(param, 32, "Ch#%d delay: %d ms\n\r", ch+1, setting.chdelay[ch]);
 	USB_print(param);
 }
 
@@ -257,7 +257,7 @@ static void cmd_chrev(char ch, char *argstr_buf)
 		else setting.chrev[ch] = 0;
 		flags.config_dirty=1;
 	}
-	snprintf(param, 32, "Channel #%d reverse: %s\n\r", ch+1, setting.chrev[ch] ? "ON":"OFF");
+	snprintf(param, 32, "Ch#%d reverse: %s\n\r", ch+1, setting.chrev[ch] ? "ON":"OFF");
 	USB_print(param);
 }
 
@@ -272,7 +272,7 @@ static void cmd_cwrev(char *argstr_buf)
 		else setting.cw_reverse = 0;
 		flags.config_dirty=1;
 	}
-	snprintf(param, 32, "CW key reverse: %s\n\r", setting.cw_reverse ? "ON":"OFF");
+	snprintf(param, 32, "CW reverse: %s\n\r", setting.cw_reverse ? "ON":"OFF");
 	USB_print(param);
 }
 
@@ -299,7 +299,7 @@ static void cmd_dotratio(char *argstr_buf)
 		if (x>=2 && x<10) setting.dah_to_dit_ratio = x;
 		flags.config_dirty=1;
 	}
-	snprintf(param, 32, "CW dot ratio: %d\n\r", setting.dah_to_dit_ratio);
+	snprintf(param, 32, "Dot ratio: %d\n\r", setting.dah_to_dit_ratio);
 	USB_print(param);
 }
 
@@ -313,7 +313,7 @@ static void cmd_wpm(char *argstr_buf)
 		if (x>0 && x<100) setting.wpm = x;
 		flags.config_dirty=1;
 	}
-	snprintf(param, 32, "WPM: %dms\n\r", setting.wpm);
+	snprintf(param, 32, "WPM: %d\r\n", setting.wpm);
 	USB_print(param);
 }
 
@@ -327,7 +327,7 @@ static void cmd_hangtime(char *argstr_buf)
 		if (x<100) setting.ptt_hang_time_wordspace_units = x;
 		flags.config_dirty=1;
 	}
-	snprintf(param, 32, "CW hang time: %d\n\r", setting.ptt_hang_time_wordspace_units);
+	snprintf(param, 32, "Hang: %d\n\r", setting.ptt_hang_time_wordspace_units);
 	USB_print(param);
 }
 
