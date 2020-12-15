@@ -230,12 +230,22 @@ uint16_t map(uint16_t x, uint16_t in_min, uint16_t in_max, uint16_t out_min, uin
 static inline uint8_t lowByte(uint16_t x) { return (uint8_t)((x) & 0xFF); }
 static inline uint8_t highByte(uint16_t x) {  return (uint8_t)((x<<8) & 0xFF); }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 uint8_t is_visible_character(uint8_t char_in)
 {
   if((char_in > 31) || (char_in == 9) || (char_in == 10) || (char_in == 13)) return 1;
   else return 0;
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 uint16_t Morse_CharToKey(char ch)
 {
 	int i;
@@ -245,6 +255,11 @@ uint16_t Morse_CharToKey(char ch)
 	return CW_NOKEYFOUND;	
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 int convert_cw_number_to_ascii (uint32_t number_in)
 {
 
@@ -339,6 +354,11 @@ int convert_cw_number_to_ascii (uint32_t number_in)
 }
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void OnUsbDataRx(uint8_t* dataIn, uint32_t length, uint16_t index)
 {
 	uint32_t i;
@@ -376,6 +396,11 @@ void OnUsbDataRx(uint8_t* dataIn, uint32_t length, uint16_t index)
 }
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void WinkeyPortWrite(uint8_t byte_to_send, uint8_t override_filter)
 {
 	uint8_t tx_res, cnt = 0, msg[1];
@@ -402,6 +427,11 @@ void WinkeyPortWrite(uint8_t byte_to_send, uint8_t override_filter)
 #endif //DEBUG_WINKEY
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void ClearSendBuffer()
 {
 USB_print("clear_send_buffer\n\r");
@@ -412,6 +442,11 @@ USB_print("clear_send_buffer\n\r");
   send_buffer_bytes = 0;
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void RemoveFromSendBuffer()
 {
   if ((send_buffer_bytes < 10) && winkey_xoff && flags.winkey_host_open) {
@@ -431,6 +466,11 @@ void RemoveFromSendBuffer()
 }
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void AddToSendBuffer(uint8_t incoming_serial_byte)
 {
 
@@ -451,6 +491,11 @@ void AddToSendBuffer(uint8_t incoming_serial_byte)
   }
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void WinkeyFarnsworthCommand(uint8_t incoming_serial_byte)
 {
 
@@ -460,8 +505,13 @@ void WinkeyFarnsworthCommand(uint8_t incoming_serial_byte)
 }
 
 
-void WinkeyUnbufferedSpeedCommand(uint8_t incoming_serial_byte) {
-
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyUnbufferedSpeedCommand(uint8_t incoming_serial_byte)
+{
   if (incoming_serial_byte == 0) {
       setting.pot_activated = 1;
 	} else {
@@ -472,29 +522,58 @@ void WinkeyUnbufferedSpeedCommand(uint8_t incoming_serial_byte) {
   }
 }
 
-void WinkeyKeyingCompensationCommand(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyKeyingCompensationCommand(uint8_t incoming_serial_byte)
+{
 	keying_compensation = incoming_serial_byte;
 }
 
-void WinkeyFirstExtensionCommand(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyFirstExtensionCommand(uint8_t incoming_serial_byte)
+{
   first_extension_time = incoming_serial_byte;
 }
 
-void WinkeyDashToDotRatioCommand(uint8_t incoming_serial_byte) {
-
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyDashToDotRatioCommand(uint8_t incoming_serial_byte)
+{
   if ((incoming_serial_byte > 32) && (incoming_serial_byte < 67)) {
     setting.dah_to_dit_ratio = (300*((uint16_t)(incoming_serial_byte)/50));
     flags.config_dirty = 1;
   }
 }
 
-void WinkeyWeightingCommand(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyWeightingCommand(uint8_t incoming_serial_byte)
+{
   if ((incoming_serial_byte > 9) && (incoming_serial_byte < 91)) {
     setting.weighting = incoming_serial_byte;
   }
 }
 
-void WinkeyPttTimesParm1Command(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyPttTimesParm1Command(uint8_t incoming_serial_byte)
+{
 #if !defined(DEBUG_WINKEY_DISABLE_LEAD_IN_TIME_SETTING)
     setting.ptt_lead_time = (incoming_serial_byte*10);
 #else
@@ -502,22 +581,44 @@ void WinkeyPttTimesParm1Command(uint8_t incoming_serial_byte) {
 #endif
 }
 
-void WinkeyPttTimesParm2Command(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyPttTimesParm2Command(uint8_t incoming_serial_byte)
+{
   setting.ptt_tail_time = (3*(int)(1200/setting.wpm)) + (incoming_serial_byte*10);
   winkey_session_ptt_tail = incoming_serial_byte;
 }
 
-void WinkeySetPotParm1Command(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeySetPotParm1Command(uint8_t incoming_serial_byte)
+{
   pot_wpm_low_value = incoming_serial_byte;
 }
 
-void WinkeySetPotParm2Command(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeySetPotParm2Command(uint8_t incoming_serial_byte)
+{
     pot_wpm_high_value = (pot_wpm_low_value + incoming_serial_byte);
 }
 
-void WinkeySetPotParm3Command(uint8_t incoming_serial_byte) {
-
-
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeySetPotParm3Command(uint8_t incoming_serial_byte)
+{
 #ifdef OPTION_WINKEY_2_SUPPORT
 	pot_full_scale_reading = 1031;
 #else //OPTION_WINKEY_2_SUPPORT
@@ -532,7 +633,13 @@ void WinkeySetPotParm3Command(uint8_t incoming_serial_byte) {
 	setting.pot_activated = 1;
 }
 
-void WinkeySetmodeCommand(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeySetmodeCommand(uint8_t incoming_serial_byte)
+{
   flags.config_dirty = 1;
 
   if (incoming_serial_byte & 4) {  //serial echo enable
@@ -579,10 +686,22 @@ void WinkeySetmodeCommand(uint8_t incoming_serial_byte) {
   }
 }
 
-void WinkeySidetoneFreqCommand(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeySidetoneFreqCommand(uint8_t incoming_serial_byte)
+{
 }
 
-void WinkeySetPinconfigCommand(uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeySetPinconfigCommand(uint8_t incoming_serial_byte)
+{
   
   if (incoming_serial_byte & 1) {
     setting.ptt_buffer_hold_active = 1;
@@ -610,7 +729,13 @@ void WinkeySetPinconfigCommand(uint8_t incoming_serial_byte) {
   }
 }
 
-void WinkeyLoadSettingsCommand(uint8_t winkey_status, uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyLoadSettingsCommand(uint8_t winkey_status, uint8_t incoming_serial_byte)
+{
 
   switch(winkey_status) {
      case WINKEY_LOAD_SETTINGS_PARM_1_COMMAND:
@@ -706,8 +831,13 @@ void WinkeyLoadSettingsCommand(uint8_t winkey_status, uint8_t incoming_serial_by
 }
 
 
-void WinkeyAdminGetValuesCommand() {
-
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyAdminGetValuesCommand()
+{
   uint8_t byte_to_send;
 
   // 1 - mode register
@@ -821,7 +951,13 @@ void WinkeyAdminGetValuesCommand() {
 
 }
 
-void WinkeyEepromDownload() {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void WinkeyEepromDownload()
+{
   
   uint8_t zero = 0;
   unsigned int x = 0;
@@ -839,7 +975,11 @@ void WinkeyEepromDownload() {
   }  
 }
 
-
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void TxKey(int state)
 {
 #ifdef DEBUG_WINKEY
@@ -866,8 +1006,13 @@ void TxKey(int state)
 }
 
 
-
-void ServiceWinkey(uint8_t action, uint8_t incoming_serial_byte) {
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
+void ServiceWinkey(uint8_t action, uint8_t incoming_serial_byte)
+{
   static uint8_t winkey_status = WINKEY_NO_COMMAND_IN_PROGRESS;
   static int winkey_parmcount = 0;
 
@@ -1794,6 +1939,11 @@ void ServiceWinkey(uint8_t action, uint8_t incoming_serial_byte) {
 	
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void ServiceWinkeyBreakin(void)
 {
 	if (flags.send_winkey_breakin_byte_flag){
@@ -1807,6 +1957,11 @@ void ServiceWinkeyBreakin(void)
 }
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void CheckDotPaddle(void)
 {
   int8_t pin_value = 0;
@@ -1850,6 +2005,11 @@ void CheckDotPaddle(void)
 }
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void CheckDashPaddle(void)
 {
   int8_t pin_value;
@@ -1876,6 +2036,11 @@ void CheckDashPaddle(void)
 }
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void CheckPaddles(void)
 {
 	static int8_t last_closure = NO_CLOSURE;
@@ -2062,6 +2227,11 @@ void CheckPaddles(void)
   } //if (configuration.keyer_mode == SINGLE_PADDLE)
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void PttKey(void)
 {
 
@@ -2103,6 +2273,11 @@ USB_print("PTT ON\r\n");
 }
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void CheckSequencerTailTime()
 	{
 	int i;
@@ -2124,6 +2299,11 @@ void CheckSequencerTailTime()
 }
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void PttUnkey(void)
 {
   if (flags.ptt_line_activated) {
@@ -2135,8 +2315,11 @@ USB_print("PTT OFF\r\n");
 }
 
 
-
-
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void LoopElementLengths(float lengths, float additional_time_ms, uint8_t speed_wpm_in)
 {
 	float element_length;
@@ -2241,6 +2424,11 @@ void LoopElementLengths(float lengths, float additional_time_ms, uint8_t speed_w
 
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void SendDot(void)
 {
   // notes: key_compensation is a straight x mS lengthening or shortening of the key down time
@@ -2300,6 +2488,11 @@ void SendDot(void)
 }
 
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void SendDash(void)
 {
   unsigned int character_wpm  = setting.wpm;
@@ -2362,7 +2555,11 @@ void SendDash(void)
 }
 
 
-
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void ServiceDotDashBuffers(void)
 {
 
@@ -2448,6 +2645,11 @@ void ServiceDotDashBuffers(void)
   }
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void CheckPttTail(void)
 {
 #ifdef DEBUG
@@ -2492,6 +2694,11 @@ void CheckPttTail(void)
 	}
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void SendChar(uint8_t cw_char, uint8_t omit_letterspace)
 {
 	uint16_t idx = 0x8000, key;
@@ -2544,6 +2751,11 @@ void SendChar(uint8_t cw_char, uint8_t omit_letterspace)
 	return;
 }
 
+/** 
+  * @brief 
+  * @param 
+  * @retval 
+  */
 void ServiceSendBuffer(uint8_t no_print)
 {
 	  // send one character out of the send buffer
