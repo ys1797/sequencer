@@ -1,8 +1,7 @@
 # sequencer with CW
+## Sequencer with CW keyer and USB intervace
 
-##Sequencer with CW keyer and USB intervace
-
-###Features:
+### Features:
 
 * Dual COM port via USB interface.
 * CW speed adjustable from 1 to 45 WPM (can be changed in code).
