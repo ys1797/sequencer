@@ -2,9 +2,9 @@
 Sequencer with CW keyer and USB intervace
 
 
-![Image alt](screenshots/seq1.png "Sequencer assembled board")
+![Image alt](images/seq1.png "Sequencer assembled board")
 
-![Image alt](screenshots/seq1.png "Sequencer assembled board")
+![Image alt](images/seq1.png "Sequencer assembled board")
 
 The board schematic and part of PCB design based on the development of the following authors:
 	"Sequencer with CW memory keyer 2018 UR3IQO:
