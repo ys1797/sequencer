@@ -1,9 +1,16 @@
 # sequencer with CW
 Sequencer with CW keyer and USB intervace
 
-![Image alt](images/seq2.png "Sequencer assembled board")
+![Image alt](images/seq.jpg "Sequencer assembled board")
+
+Schematic and PCB board can be found on easyeda project:
+
+	https://easyeda.com/ys1797/pa_sequencer
+
+ 
 
 The board schematic and part of PCB design based on the development of the following authors:
+
 	"Sequencer with CW memory keyer 2018 UR3IQO:
 	https://vhfdesign.com/ru/other/cw-key-sequencer.html"
 
