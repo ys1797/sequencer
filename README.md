@@ -1,7 +1,35 @@
 # sequencer with CW
-Sequencer with CW keyer and USB intervace
 
+##Sequencer with CW keyer and USB intervace
 
+###Features:
+
+* Dual COM port via USB interface.
+* CW speed adjustable from 1 to 45 WPM (can be changed in code).
+* Up to 4 TX/RX Sequencer keying lines with configurable lead, tail, and hang times.
+* Sequencer has one optotransistor output, one small relay, one "latch relay" and "BIG" relay output.
+* On tx state this board provide bias voltage for external needs.
+* 3 sequencer line led indicator.
+* CW output line has optotransistor output.
+* CW output can be reprogrammed as 5 sequencer output.
+* PTT line have protected circuits.
+* Tx led indicator.
+* Programming and interfacing via USB port (Console).
+* Logging and Contest Program Interfacing via K1EL Winkey version 1 or 2 interface emulation. (Via second COM port).
+* Speed potentiometer.
+* Iambic A and B.
+* Straight key support.
+* Ultimatic mode.
+* Bug mode.
+* CMOS Super Keyer Iambic B Timing.
+* Paddle reverse.
+* Keying Compensation.
+* Dash to Dot Ratio adjustment.
+* Weighting.
+* Autospace.
+* Wordspace Adjustment.
+* Flash non-volatile storage of most settings.
+* Non-English (Russian) Character Support.
 
 ![Image alt](images/seq.jpg "Sequencer assembled board")
 
