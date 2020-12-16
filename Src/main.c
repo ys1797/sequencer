@@ -76,7 +76,7 @@ ch_t ch[4] = {
 
 /* Flash storage for settings at absolute address */
 const __IO settings_t settings_Store __attribute__((at(FLASH_STORE_ADR)));
-const __IO settings_t backup_settings_Store __attribute__((at(FLASH_BACKUP_ADR)));
+
 
 // ADC speed and key
 volatile uint16_t adc[2] = {0,};
@@ -3067,26 +3067,9 @@ void StoreSetting(void)
 	uint64_t buf;
 	uint32_t fladr;
 	uint8_t *adr;
-	settings_t 	tmp_settings;
+
 	
 	FLstatus = HAL_FLASH_Unlock();  
-
-	// Erase backup sector
-	eraseinit.NbPages = 1;
-	eraseinit.PageAddress = FLASH_BACKUP_ADR;
-	eraseinit.TypeErase = FLASH_TYPEERASE_PAGES;
-	FLstatus = HAL_FLASHEx_Erase(&eraseinit, &PageError);   
-			
-	// copy store to backup
-	adr = (uint8_t *)&tmp_settings;
-	memcpy((uint8_t *)&tmp_settings, (const void *)&settings_Store, sizeof(settings_t));
-	fladr = FLASH_BACKUP_ADR;
-	for (stadr = 0; stadr<(sizeof(settings_t)/8); stadr++) {
-		memcpy(&buf, adr, 8); 
-		FLstatus =  HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, fladr, buf);
-		adr+=8;
-		fladr+=8;
-	}
 
 	// erase store 
 	eraseinit.NbPages = 1;
