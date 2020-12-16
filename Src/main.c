@@ -2243,7 +2243,7 @@ void PttKey(void)
 		sequencer_ptt_inactive_time = 0;
 
 		flags.ptt_line_activated = 1;
-USB_print("PTT ON\r\n");
+//USB_print("PTT ON\r\n");
 	while (!all_delays_satisfied){
 		uint32_t t = HAL_GetTick();
         if (((t - ptt_activation_time) >= setting.chdelay[0]) && !ch[0].on){
@@ -2307,7 +2307,7 @@ void CheckSequencerTailTime()
 void PttUnkey(void)
 {
   if (flags.ptt_line_activated) {
-USB_print("PTT OFF\r\n");
+//USB_print("PTT OFF\r\n");
 		SetTxLed(0); // Reset TX led
 		flags.ptt_line_activated = 0;
 		sequencer_ptt_inactive_time = HAL_GetTick();
@@ -3041,7 +3041,7 @@ void DisplaySettings(void)
 		snprintf(izp, sizeof(izp), "CH#%d delay: %dms rev: %d\n\r", i+1, setting.chdelay[i], setting.chrev[i]);
 		USB_print(izp);
 	}
-	snprintf(izp, sizeof(izp), "CW key rev: %s, output rev: %s\n\r", setting.cw_reverse?"ON":"OFF", setting.cw_keyreverse?"ON":"OFF");
+	snprintf(izp, sizeof(izp), "CW key rev: %s, rev: %s\n\r", setting.cw_reverse?"ON":"OFF", setting.cw_keyreverse?"ON":"OFF");
 	USB_print(izp);
 	snprintf(izp, sizeof(izp), "CW WPM: %d, dot ratio: %d\n\r", setting.wpm, setting.dah_to_dit_ratio/100);
 	USB_print(izp);
@@ -3111,8 +3111,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* h)
 /* Set CW keyer output*/
 void SetCw(char on)
 {
-	cw_sidetone = on;
-/*
+//	cw_sidetone = on;
+
 	if(!setting.cw_reverse) {
 		if (on) HAL_GPIO_WritePin(GPIOA, CW_OUT, GPIO_PIN_SET);
 		else HAL_GPIO_WritePin(GPIOA, CW_OUT, GPIO_PIN_RESET);
@@ -3120,7 +3120,7 @@ void SetCw(char on)
 		if (on) HAL_GPIO_WritePin(GPIOA, CW_OUT, GPIO_PIN_RESET);
 		else HAL_GPIO_WritePin(GPIOA, CW_OUT, GPIO_PIN_SET);
 	}
-*/
+
 }
 
 
@@ -3547,7 +3547,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	static uint32_t t;
 	micros += 10;
-	
+/*
 	if (cw_sidetone) {
 		t++;
 		if (t>150) {
@@ -3556,7 +3556,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 				HAL_GPIO_WritePin(GPIOA, CW_OUT, tone_state);
 		}
 	}
-
+*/
 }
 
 /**

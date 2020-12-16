@@ -127,7 +127,11 @@ static int cmdid_search (char *cmdstr)
 }
 
 
-
+/**
+  * @brief Print string to USB console interface
+  * @param string to send
+  * @retval None
+  */
 void USB_print(char *msg)
 {
 	uint8_t tx_res = 0, cnt = 0, l = strlen(msg);
@@ -144,6 +148,11 @@ void USB_print(char *msg)
  * Overview:        This function processes the cmd command.
  ********************************************************************/
 
+/**
+  * @brief Process command from USB console interface.
+  * @param None
+  * @retval None
+  */
 void ExecuteCmd(void)
 {
 	unsigned int id;
@@ -222,15 +231,22 @@ void ExecuteCmd(void)
 	}
 }
 
-
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
 static void cmd_default(char *argstr_buf)
 {
 	USB_print("Loading default..\r\n");
 	SaveDefaultConfig();
 }
 
-
-
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
 static void cmd_delay(char ch, char *argstr_buf)
 {
 	char param[32];
@@ -247,6 +263,11 @@ static void cmd_delay(char ch, char *argstr_buf)
 	USB_print(param);
 }
 
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
 static void cmd_chrev(char ch, char *argstr_buf)
 {
 	char param[32];
@@ -262,6 +283,11 @@ static void cmd_chrev(char ch, char *argstr_buf)
 }
 
 
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
 static void cmd_cwrev(char *argstr_buf)
 {
 	char param[32];
@@ -276,6 +302,11 @@ static void cmd_cwrev(char *argstr_buf)
 	USB_print(param);
 }
 
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
 static void cmd_keyreverse(char *argstr_buf)
 {
 	char param[32];
@@ -290,6 +321,11 @@ static void cmd_keyreverse(char *argstr_buf)
 	USB_print(param);
 }
 
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
 static void cmd_dotratio(char *argstr_buf)
 {
 	char param[32];
@@ -303,7 +339,11 @@ static void cmd_dotratio(char *argstr_buf)
 	USB_print(param);
 }
 
-
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
 static void cmd_wpm(char *argstr_buf)
 {
 	char param[32];
@@ -317,7 +357,11 @@ static void cmd_wpm(char *argstr_buf)
 	USB_print(param);
 }
 
-
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
 static void cmd_hangtime(char *argstr_buf)
 {
 	char param[32];
@@ -331,6 +375,11 @@ static void cmd_hangtime(char *argstr_buf)
 	USB_print(param);
 }
 
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
 static void cmd_unknown(char *argstr_buf)
 {
 	USB_print(helptext);

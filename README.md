@@ -1,6 +1,8 @@
 # sequencer with CW
 Sequencer with CW keyer and USB intervace
 
+
+
 ![Image alt](images/seq.jpg "Sequencer assembled board")
 
 Schematic and PCB board can be found on easyeda project:
