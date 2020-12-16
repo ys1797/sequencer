@@ -36,7 +36,6 @@ extern "C" {
 
 #define CW_MAX_MSG_LENGTH			64
 #define FLASH_STORE_ADR				0x8007c00
-#define FLASH_BACKUP_ADR      0x8007800
 
 #define PTT_IN								GPIO_PIN_5	// PTT INPUT PIN (PA5)
 #define CW_DOT 								GPIO_PIN_0	// CW keyer DOT input (PF0)
