@@ -421,7 +421,7 @@ void WinkeyPortWrite(uint8_t byte_to_send, uint8_t override_filter)
 		tx_res = CDC_Transmit_FS(msg, 1, 2);
 	} while (USBD_BUSY == tx_res && ++cnt < 200);
 	
-	#ifdef DEBUG_WINKEY
+#ifdef DEBUG_WINKEY
 	sprintf(izp, "WK TX: 0x%x\r\n", byte_to_send);
 	USB_print(izp);
 #endif //DEBUG_WINKEY
@@ -434,11 +434,10 @@ void WinkeyPortWrite(uint8_t byte_to_send, uint8_t override_filter)
   */
 void ClearSendBuffer()
 {
-USB_print("clear_send_buffer\n\r");
-
-#ifdef FEATURE_WINKEY_EMULATION
+#ifdef DEBUG
+	USB_print("clear_send_buffer\n\r");
+#endif //DEBUG
   winkey_xoff=0;
-#endif 
   send_buffer_bytes = 0;
 }
 
@@ -574,11 +573,6 @@ void WinkeyWeightingCommand(uint8_t incoming_serial_byte)
   */
 void WinkeyPttTimesParm1Command(uint8_t incoming_serial_byte)
 {
-#if !defined(DEBUG_WINKEY_DISABLE_LEAD_IN_TIME_SETTING)
-    setting.ptt_lead_time = (incoming_serial_byte*10);
-#else
-    configuration.ptt_lead_time[configuration.current_tx-1] = 0;
-#endif
 }
 
 /** 
@@ -886,11 +880,7 @@ void WinkeyAdminGetValuesCommand()
   WinkeyPortWrite(setting.weighting,1);
 
   // 5 - ptt lead
-  if (setting.ptt_lead_time < 256){
-    WinkeyPortWrite(setting.ptt_lead_time/10,1);
-  } else {
-    WinkeyPortWrite(255,1);
-  }
+  WinkeyPortWrite(255,1);
 
   // 6 - ptt tail
   //if (configuration.ptt_tail_time[configuration.current_tx-1] < 256){
@@ -2234,7 +2224,6 @@ void CheckPaddles(void)
   */
 void PttKey(void)
 {
-
   uint32_t ptt_activation_time = HAL_GetTick();
   uint8_t all_delays_satisfied = 0;
   
@@ -2246,24 +2235,23 @@ void PttKey(void)
 //USB_print("PTT ON\r\n");
 	while (!all_delays_satisfied){
 		uint32_t t = HAL_GetTick();
-        if (((t - ptt_activation_time) >= setting.chdelay[0]) && !ch[0].on){
+        if (((t - ptt_activation_time) >= setting.chhead[0]) && !ch[0].on){
 					SetCh(0, 1);
 					ch[0].on = 1;
         }
-				if (((t - ptt_activation_time) >= setting.chdelay[1]) && !ch[1].on){
+				if (((t - ptt_activation_time) >= setting.chhead[1]) && !ch[1].on){
 					SetCh(1, 1);
 					ch[1].on = 1;
         }          
-				if (((t - ptt_activation_time) >= setting.chdelay[2]) && !ch[3].on){
+				if (((t - ptt_activation_time) >= setting.chhead[2]) && !ch[2].on){
 					SetCh(2, 1);
 					ch[2].on = 1;
         }          
-				if (((t - ptt_activation_time) >= setting.chdelay[3]) && !ch[3].on){
+				if (((t - ptt_activation_time) >= setting.chhead[3]) && !ch[3].on){
 					SetCh(3, 1);
 					ch[3].on = 1;
-        }          
-
-        if (((t - ptt_activation_time) >= setting.ptt_lead_time) && ch[0].on && ch[1].on && ch[2].on && ch[3].on){
+        }
+        if (ch[0].on && ch[1].on && ch[2].on && ch[3].on) {
           all_delays_satisfied = 1;
         }
      } //while (!all_delays_satisfied)
@@ -2334,7 +2322,6 @@ void LoopElementLengths(float lengths, float additional_time_ms, uint8_t speed_w
 	
   uint64_t ticks = (uint64_t)(element_length*lengths*1000) + (uint64_t)(additional_time_ms*1000); // improvement from Paul, K1XM
   uint64_t start = micros;
-
   while (((micros - start) < ticks)){
     CheckPttTail();
     if ((setting.keyer_mode != ULTIMATIC) && (setting.keyer_mode != SINGLE_PADDLE)) {
@@ -2399,27 +2386,27 @@ void LoopElementLengths(float lengths, float additional_time_ms, uint8_t speed_w
       }
       
 #if defined(FEATURE_MEMORIES) && defined(FEATURE_BUTTONS)
-      check_the_memory_buttons();
+    check_the_memory_buttons();
 #endif
 
-      // blow out prematurely if we're automatic sending and a paddle gets hit
-      if (sending_mode == AUTOMATIC_SENDING && (HAL_GPIO_ReadPin(GPIOF, CW_DOT) == 0 || HAL_GPIO_ReadPin(GPIOF, CW_DASH) == 0 || flags.dot_buffer || flags.dash_buffer)) {
-        sending_mode = AUTOMATIC_SENDING_INTERRUPTED;
-        automatic_sending_interruption_time = HAL_GetTick(); 
-        return;
-      }   
-    }  //while ((millis() < endtime) && (millis() > 200))
+    // blow out prematurely if we're automatic sending and a paddle gets hit
+    if (sending_mode == AUTOMATIC_SENDING && (HAL_GPIO_ReadPin(GPIOF, CW_DOT) == 0 || HAL_GPIO_ReadPin(GPIOF, CW_DASH) == 0 || flags.dot_buffer || flags.dash_buffer)) {
+      sending_mode = AUTOMATIC_SENDING_INTERRUPTED;
+      automatic_sending_interruption_time = HAL_GetTick(); 
+      return;
+    }   
+  }  //while ((millis() < endtime) && (millis() > 200))
   
-    if ((setting.keyer_mode == IAMBIC_A) && (flags.iambic_flag) && HAL_GPIO_ReadPin(GPIOF, CW_DOT) == 1 && HAL_GPIO_ReadPin(GPIOF, CW_DASH) == 1) {
-        flags.iambic_flag = 0;
-        flags.dot_buffer = 0;
-        flags.dash_buffer = 0;
-    }    
+  if ((setting.keyer_mode == IAMBIC_A) && (flags.iambic_flag) && HAL_GPIO_ReadPin(GPIOF, CW_DOT) == 1 && HAL_GPIO_ReadPin(GPIOF, CW_DASH) == 1) {
+    flags.iambic_flag = 0;
+    flags.dot_buffer = 0;
+    flags.dash_buffer = 0;
+  }    
   
-    if ((being_sent == SENDING_DIT) || (being_sent == SENDING_DAH)){
-//      if (configuration.dit_buffer_off) {flags.dot_buffer = 0;}
-//      if (configuration.dah_buffer_off) {flags.dash_buffer = 0;}
-    }  
+  if ((being_sent == SENDING_DIT) || (being_sent == SENDING_DAH)){
+//  if (configuration.dit_buffer_off) {flags.dot_buffer = 0;}
+//  if (configuration.dah_buffer_off) {flags.dash_buffer = 0;}
+  }  
 } //void loop_element_lengths
 
 
@@ -2668,11 +2655,9 @@ void CheckPttTail(void)
 			if (!flags.key_state) PttUnkey();
 		}
 	}  
-
 	if (flags.key_state) {
 		ptt_time = HAL_GetTick();
 	} else {
-
 		if ((flags.ptt_line_activated) && (flags.manual_ptt_invoke == 0)) {
 			if (last_sending_mode == MANUAL_SENDING) {
         // PTT Tail Time: N     PTT Hang Time: Y
@@ -3038,15 +3023,25 @@ void DisplaySettings(void)
 	char izp[50];
 	int i;
 	for (i=0; i<4; i++) {
-		snprintf(izp, sizeof(izp), "CH#%d delay: %dms rev: %d\n\r", i+1, setting.chdelay[i], setting.chrev[i]);
+		snprintf(izp, sizeof(izp), "CH#%d head: %dms tail: %dms rev: %d\r\n", i+1, setting.chhead[i], setting.chtail[i], setting.chrev[i]);
 		USB_print(izp);
 	}
-	snprintf(izp, sizeof(izp), "CW key rev: %s, rev: %s\n\r", setting.cw_reverse?"ON":"OFF", setting.cw_keyreverse?"ON":"OFF");
+	snprintf(izp, sizeof(izp), "CW key rev: %s, rev: %s\n\r", setting.paddle_mode?"ON":"OFF", setting.cw_keyreverse?"ON":"OFF");
 	USB_print(izp);
 	snprintf(izp, sizeof(izp), "CW WPM: %d, dot ratio: %d\n\r", setting.wpm, setting.dah_to_dit_ratio/100);
 	USB_print(izp);
 	snprintf(izp, sizeof(izp), "TX tail time: %d ms\n\r", setting.ptt_tail_time);
 	USB_print(izp);
+	USB_print("Key mode: ");
+	switch(setting.keyer_mode) {
+		case STRAIGHT: USB_print("STRAIGHT"); break;
+		case IAMBIC_B: USB_print("IAMBIC_B"); break;
+		case IAMBIC_A: USB_print("IAMBIC_A"); break;
+		case BUG: USB_print("BUG"); break;
+		case ULTIMATIC: USB_print("ULTIMATIC"); break;
+		case SINGLE_PADDLE: USB_print("SINGLE PADDLE"); break;
+	}
+	USB_print("\r\n");
 }
 
 
@@ -3113,7 +3108,7 @@ void SetCw(char on)
 {
 //	cw_sidetone = on;
 
-	if(!setting.cw_reverse) {
+	if(!setting.cw_keyreverse) {
 		if (on) HAL_GPIO_WritePin(GPIOA, CW_OUT, GPIO_PIN_SET);
 		else HAL_GPIO_WritePin(GPIOA, CW_OUT, GPIO_PIN_RESET);
 	} else {
@@ -3172,14 +3167,13 @@ void SaveDefaultConfig(void)
 	// Ident missmatch - load default setting
 	memset((uint8_t *)&setting, 0, sizeof(settings_t));
 	setting.Ident[0]=0x55; setting.Ident[1]=0x66; setting.Ident[2]=0x55; setting.Ident[3]=0x66;
-	setting.chdelay[0] = 200;
-	setting.chdelay[1] = 10;
-	setting.chdelay[2] = 0;
-	setting.chdelay[3] = 10;
+	setting.chtail[0] = 200;
+	setting.chtail[1] = 10;
+	setting.chtail[2] = 0;
+	setting.chtail[3] = 10;
 	setting.wpm = 27;
 	setting.wpm_farnsworth = 27;
 	setting.dah_to_dit_ratio = 300; 		// 300 = 3 / normal 3:1 ratio
-	setting.ptt_lead_time = 0;					// PTT lead time in mS
   setting.ptt_tail_time = 10;					// PTT tail time in mS
   setting.paddle_interruption_quiet_time_element_lengths = 0;	
 	setting.ptt_hang_time_wordspace_units = 1;
@@ -3237,10 +3231,8 @@ int main(void)
 	// setup default modes	
   setting.paddle_mode = PADDLE_NORMAL;
   setting.keyer_mode = IAMBIC_B;
-  setting.ptt_lead_time = 0;					// PTT lead time in mS
   setting.ptt_tail_time = 10;					// PTT tail time in mS
 	setting.dah_to_dit_ratio = 300; 		// 300 = 3 / normal 3:1 ratio
-	setting.wpm = 26;										// "factory default" keyer speed setting
 	setting.weighting = 50;							// 50 = weighting factor of 1 (normal)
 	setting.length_wordspace = 7;
 	setting.ptt_buffer_hold_active = 0;
@@ -3294,7 +3286,6 @@ int main(void)
 			for (i=0; i<winkey_ptr_in; i++) ServiceWinkey(SERVICE_SERIAL_BYTE, winkey_buffer[i]);
 			flags.winkey_command = 0;
 		}
-
 		CheckPaddles();
     ServiceDotDashBuffers();
     ServiceSendBuffer(PRINTCHAR);
@@ -3545,7 +3536,6 @@ static void MX_GPIO_Init(void)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	static uint32_t t;
 	micros += 10;
 /*
 	if (cw_sidetone) {
