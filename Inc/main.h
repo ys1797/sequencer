@@ -250,26 +250,21 @@ typedef struct  {
 
 typedef struct  {
 	uint8_t		Ident[4];					// Ident 0x55 0x66 0x55 0x66
-	uint8_t current_tx;
-  uint16_t	ptt_lead_time;
-	
+
   uint16_t	ptt_tail_time;
-	uint16_t		dah_to_dit_ratio;
+	uint16_t	dah_to_dit_ratio;
 	
-	uint16_t	chdelay[4];				// output channel delay in ms.
-	
+	uint16_t	chhead[4];				// output channel delay in ms.
 	uint16_t	chtail[4];				// output channel tail time in ms.
-	
 	uint8_t		chrev[4];					// output reverse flag.
 
-	uint8_t		cw_reverse;				// CW key dot/dash reverse
+	uint8_t 	paddle_mode;			// CW key dot/dash reverse
 	uint8_t		cw_keyreverse;		// CW output reverse
 
 	uint8_t	ptt_hang_time_wordspace_units;
-	uint8_t wpm;
+	uint8_t wpm;								//
 	uint8_t wpm_farnsworth;
-	uint8_t paddle_mode;
-	uint8_t keyer_mode;
+	uint8_t keyer_mode;					//
 	uint8_t pot_activated;
 	uint8_t weighting;
 	uint8_t length_wordspace;
