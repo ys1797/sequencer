@@ -21,19 +21,15 @@
  */
 enum {
 	CMD_DEFAULT,
-	CMD_DELAY1,
-	CMD_DELAY2,
-	CMD_DELAY3,
-	CMD_DELAY4,
-	CMD_CHREV1,
-	CMD_CHREV2,
-	CMD_CHREV3,
-	CMD_CHREV4,
+	CMD_CHHEAD,
+	CMD_CHTAIL,
+	CMD_CHREV,
 	CMD_CWREV,
 	CMD_KEYREVERSE,
 	CMD_DOTRATIO,
 	CMD_WPM,
 	CMD_HANGTIME,
+	CMD_KEYMODE,
 	CMD_D,
 	// Add more 
 	CMD_LAST
@@ -49,42 +45,33 @@ struct cmd_st {
 
 // Help text 
 char *helptext = 
-	" Cmds:\n\r"
-	"DEFAULT\n\r"
-  "DELAY1 ms\n\r"
-	"DELAY2 ms\n\r"
-	"DELAY3 ms\n\r"
-	"DELAY4 ms\n\r"
-  "CH1_REV x\n\r"
-	"CH2_REV x\n\r"
-	"CH3_REV x\n\r"
-	"CH4_REV x\n\r"
-  "CW_REV x\n\r"
-	"KEYREVERSE x\n\r"
-  "DOTRATIO x\n\r"
-	"WPM x\n\r"
-	"HANGTIME x\n\r"
-	"D\n\r"
-  "\n\r";
+	" Cmds:\r\n"
+	"DEFAULT\r\n"
+  "HEAD x x ms\r\n"
+  "TAIL x x ms\r\n"
+  "REV x xn\r\n"
+  "CW_REV x\r\n"
+	"KEYREVERSE x\r\n"
+  "DOTRATIO x\r\n"
+	"WPM x\r\n"
+	"HANGTIME x\r\n"
+  "KEYMODE s\r\n"
+	"D\r\n\r\n";
 
 /**
  *	Command strings - match command with command ID 
  */
 const struct cmd_st cmd_tbl [] = {
 	{ "DEFAULT", 		CMD_DEFAULT, },
-	{ "DELAY1", 		CMD_DELAY1,  },
-	{ "DELAY2", 		CMD_DELAY2,  },
-	{ "DELAY3", 		CMD_DELAY3,  },
-	{ "DELAY4", 		CMD_DELAY4,  },
-	{ "CH1_REV", 		CMD_CHREV1,  },
-	{ "CH2_REV", 		CMD_CHREV2,  },
-	{ "CH3_REV", 		CMD_CHREV3,  },
-	{ "CH4_REV", 		CMD_CHREV4,  },
+	{ "HEAD", 			CMD_CHHEAD,  },
+	{ "TAIL", 			CMD_CHTAIL,  },
+	{ "REV", 				CMD_CHREV,  },
 	{ "CW_REV", 		CMD_CWREV,  },
 	{ "KEYREVERSE", CMD_KEYREVERSE,},
 	{ "DOTRATIO",		CMD_DOTRATIO, },
 	{ "WPM",				CMD_WPM, },
 	{ "HANGTIME",		CMD_HANGTIME, },
+	{ "KEYMODE",		CMD_KEYMODE, },
 	{ "D",					CMD_D, },
 };
 
@@ -99,13 +86,15 @@ extern char Rx_Buffer[RX_DATA_SIZE];
 
 
 static void cmd_default(char *argstr_buf);
-static void cmd_delay(char ch, char *argstr_buf);
-static void cmd_chrev(char ch, char *argstr_buf);
+static void cmd_chhead(char *argstr_buf);
+static void cmd_chtail(char *argstr_buf);
+static void cmd_chrev(char *argstr_buf);
 static void cmd_cwrev(char *argstr_buf);
 static void cmd_keyreverse(char *argstr_buf);
 static void cmd_dotratio(char *argstr_buf);
 static void cmd_wpm(char *argstr_buf);
 static void cmd_hangtime(char *argstr_buf);
+static void cmd_keymode(char *argstr_buf);
 static void cmd_unknown(char *argstr_buf);
 
 
@@ -183,29 +172,14 @@ void ExecuteCmd(void)
 		case CMD_DEFAULT:
 			cmd_default(argstr_buf);
 			break;
-		case CMD_DELAY1:
-			cmd_delay(0, argstr_buf);
+		case CMD_CHHEAD:
+			cmd_chhead(argstr_buf);
 			break;
-		case CMD_DELAY2:
-			cmd_delay(1, argstr_buf);
+		case CMD_CHTAIL:
+			cmd_chtail(argstr_buf);
 			break;
-		case CMD_DELAY3:
-			cmd_delay(2, argstr_buf);
-			break;
-		case CMD_DELAY4:
-			cmd_delay(3, argstr_buf);
-			break;
-		case CMD_CHREV1:
-			cmd_chrev(0, argstr_buf);
-			break;
-		case CMD_CHREV2:
-			cmd_chrev(1, argstr_buf);
-			break;			
-		case CMD_CHREV3:
-			cmd_chrev(3, argstr_buf);
-			break;			
-		case CMD_CHREV4:
-			cmd_chrev(4, argstr_buf);
+		case CMD_CHREV:
+			cmd_chrev(argstr_buf);
 			break;			
 		case CMD_CWREV:
 			cmd_cwrev(argstr_buf);
@@ -222,6 +196,9 @@ void ExecuteCmd(void)
 		case CMD_HANGTIME:		
 			cmd_hangtime(argstr_buf);
 			break;		
+		case CMD_KEYMODE:
+			cmd_keymode(argstr_buf);
+			break;
 		case CMD_D:
 			DisplaySettings();
 			break;
@@ -247,37 +224,70 @@ static void cmd_default(char *argstr_buf)
   * @param None
   * @retval None
   */
-static void cmd_delay(char ch, char *argstr_buf)
+static void cmd_chhead(char *argstr_buf)
 {
-	char param[32];
-	int x;
+char param[32], *p;
+	int ch, x;
 	
-	if (argstr_buf) {
-		x = atoi(argstr_buf);
-		if ((x>=0) & (x<501)) {
-			setting.chdelay[ch] = x;
-			flags.config_dirty=1;
-		}
+	p = strchr (argstr_buf, ' ');
+	if (p == NULL) return;
+	*p = '\0';
+	p++;
+	ch = atoi(argstr_buf) - 1;
+	if (ch < 0 && ch > 3)  return;
+	x = atoi(p);
+	USB_print(p);	
+	if ((x>=0) & (x<501)) {
+		setting.chhead[ch] = x;
+		flags.config_dirty=1;
 	}
-	snprintf(param, 32, "Ch#%d delay: %d ms\n\r", ch+1, setting.chdelay[ch]);
+	snprintf(param, 32, "Ch#%d head: %d ms\n\r", ch+1, setting.chhead[ch]);
 	USB_print(param);
 }
+
+static void cmd_chtail(char *argstr_buf)
+{
+char param[32], *p;
+	int ch, x;
+	
+	p = strchr (argstr_buf, ' ');
+	if (p == NULL) return;
+	*p = '\0';
+	p++;
+	ch = atoi(argstr_buf) - 1;
+	if (ch < 0 && ch > 3)  return;
+	
+	x = atoi(p);
+	if ((x>=0) & (x<501)) {
+		setting.chtail[ch] = x;
+		flags.config_dirty=1;
+	}
+	snprintf(param, 32, "Ch#%d tail: %d ms\n\r", ch+1, setting.chtail[ch]);
+	USB_print(param);
+}
+
 
 /**
   * @brief 
   * @param None
   * @retval None
   */
-static void cmd_chrev(char ch, char *argstr_buf)
+static void cmd_chrev(char *argstr_buf)
 {
-	char param[32];
-	int x;
-	if (argstr_buf) {
-		x = atoi(argstr_buf);
-		if (x) setting.chrev[ch] = 1;
-		else setting.chrev[ch] = 0;
-		flags.config_dirty=1;
-	}
+	char param[32], *p;
+	int ch, x;
+	
+	p = strchr (argstr_buf, ' ');
+	if (p == NULL) return;
+	*p = '\0';
+	p++;
+	ch = atoi(argstr_buf) - 1;
+	x = atoi(p);
+	if (ch < 0 && ch > 3)  return;
+	
+	if (x) setting.chrev[ch] = 1;
+	else setting.chrev[ch] = 0;
+	flags.config_dirty=1;
 	snprintf(param, 32, "Ch#%d reverse: %s\n\r", ch+1, setting.chrev[ch] ? "ON":"OFF");
 	USB_print(param);
 }
@@ -294,11 +304,11 @@ static void cmd_cwrev(char *argstr_buf)
 	int x;
 	if (argstr_buf) {
 		x = atoi(argstr_buf);
-		if (x) setting.cw_reverse = 1;
-		else setting.cw_reverse = 0;
+		if (x) setting.paddle_mode = PADDLE_REVERSE;
+		else setting.paddle_mode = PADDLE_NORMAL;
 		flags.config_dirty=1;
 	}
-	snprintf(param, 32, "CW reverse: %s\n\r", setting.cw_reverse ? "ON":"OFF");
+	snprintf(param, 32, "CW reverse: %s\n\r", setting.paddle_mode ? "ON":"OFF");
 	USB_print(param);
 }
 
@@ -373,6 +383,36 @@ static void cmd_hangtime(char *argstr_buf)
 	}
 	snprintf(param, 32, "Hang: %d\n\r", setting.ptt_hang_time_wordspace_units);
 	USB_print(param);
+}
+
+
+/**
+  * @brief 
+  * @param None
+  * @retval None
+  */
+static void cmd_keymode(char *argstr_buf)
+{
+	if (argstr_buf) {
+		if (!strcasecmp(argstr_buf, "STRAIGHT")) setting.keyer_mode = STRAIGHT;
+		else if (!strcasecmp(argstr_buf, "IAMBIC_B")) setting.keyer_mode = IAMBIC_B;
+		else if (!strcasecmp(argstr_buf, "IAMBIC_A")) setting.keyer_mode = IAMBIC_A;
+		else if (!strcasecmp(argstr_buf, "BUG")) setting.keyer_mode = BUG;
+		else if (!strcasecmp(argstr_buf, "ULTIMATIC")) setting.keyer_mode = ULTIMATIC;
+		else if (!strcasecmp(argstr_buf, "SINGLE")) setting.keyer_mode = SINGLE_PADDLE;
+	
+		USB_print("Key mode: ");
+		switch(setting.keyer_mode) {
+			case STRAIGHT: USB_print("STRAIGHT"); break;
+			case IAMBIC_B: USB_print("IAMBIC_B"); break;
+			case IAMBIC_A: USB_print("IAMBIC_A"); break;
+			case BUG: USB_print("BUG"); break;
+			case ULTIMATIC: USB_print("ULTIMATIC"); break;
+			case SINGLE_PADDLE: USB_print("SINGLE PADDLE"); break;
+		}
+		USB_print("\r\n");
+		flags.config_dirty=1;
+	}
 }
 
 /**
